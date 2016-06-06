@@ -29,6 +29,7 @@ class calc_driver {
 	void assign(const std::string *value, cnode *node);
 	void print(cnode *node);
 	void list();
+    void lcomment(const std::string *value);
 
 	// Error handling.
 	void error(const std::string& m);

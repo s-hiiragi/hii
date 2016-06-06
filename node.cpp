@@ -17,7 +17,7 @@ int cnode::expr(calc_driver *driver) const
 	  case OP_DIVIDE:
 		return left_->expr(driver) / right_->expr(driver);
 
-	  case OP_CONST:
+	  case OP_IVAL:
 		return value_;
 
 	  case OP_VALUE:

@@ -64,3 +64,9 @@ void calc_driver::list()
 	std::for_each(values.begin(), values.end(), list_action());
 }
 
+void calc_driver::lcomment(const std::string *value)
+{
+    std::cout << "COMMENT: " << *value << std::endl;
+    delete value;
+}
+

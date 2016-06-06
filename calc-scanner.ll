@@ -30,6 +30,7 @@
 id    [a-zA-Z_][a-zA-Z_0-9]*
 int   [1-9][0-9]*
 blank [ \t]
+lcmnt #[^\n]*
 
 %%
 %{
@@ -60,6 +61,10 @@ blank [ \t]
 					yylval->sval = new std::string(yytext);
 					return token::TK_IDENTIFIER;
 				}
+{lcmnt}         {
+                    yylval->lcmnt = new std::string(yytext);
+                    return token::TK_LCOMMENT;
+                }
 .				driver.error("この文字を識別子で使用することはできません。");
 
 %%

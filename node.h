@@ -15,7 +15,7 @@ enum {
 	OP_TIMES,
 	OP_DIVIDE,
 	OP_VALUE,
-	OP_CONST
+	OP_IVAL
 } ;
 
 // ノード
