@@ -8,10 +8,10 @@ CFLAGS = -O2
 
 all: calc
 
-convert: $(SOURCES) $(HEADERS)
+#convert: $(SOURCES) $(HEADERS)
 
-.SUFFIXES:
-.SUFFIXES: .cpp .cc .ll .yy .o
+#.SUFFIXES:
+#.SUFFIXES: .cpp .cc .ll .yy .o
 
 calc: $(OBJ)
 	$(CC) $(LDFLAGS) -o $@ $(OBJ) -lstdc++
@@ -31,32 +31,11 @@ calc-scanner.cc: calc-scanner.ll
 calc-parser.o: $(BISON_OUTPUT)
 calc-scanner.o: calc-scanner.cc
 
-calc.cpp: ../calc.cpp
-	nkf -w --unix $< > $@
-
-node.cpp: ../node.cpp
-	nkf -w --unix $< > $@
-
-calc-driver.cpp: ../calc-driver.cpp
-	nkf -w --unix $< > $@
-
-calc-parser.yy: ../calc-parser.yy
-	nkf -w --unix $< > $@
-
-calc-scanner.ll: ../calc-scanner.ll
-	nkf -w --unix $< > $@
-
-calc-driver.h: ../calc-driver.h
-	nkf -w --unix $< > $@
-
-node.h: ../node.h
-	nkf -w --unix $< > $@
-
 depend:
 	makedepend -- $(CFLAGS) -- $(SOURCES)
 
-calc.o: calc-parser.hh
-node.o: location.hh
+#calc.o: calc-parser.hh
+#node.o: location.hh
 
 # DO NOT DELETE
 
