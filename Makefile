@@ -52,3 +52,4 @@ calc-scanner.o: position.hh
 clean:
 	@rm -rf *.o calc $(FLEX_OUTPUT) $(BISON_OUTPUT) *.output stack.hh
 
+# vim: set noexpandtab:
