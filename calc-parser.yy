@@ -3,7 +3,9 @@
 // wrote by hirok
 %define parser_class_name {calc_parser}
 
+// calc-parser.hhを生成するよう指定
 %defines
+
 %{
 #include <string>
 #include "node.h"
