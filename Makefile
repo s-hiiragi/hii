@@ -5,6 +5,7 @@ FLEX_OUTPUT = calc-scanner.cc
 BISON_OUTPUT = calc-parser.cc calc-parser.hh location.hh position.hh
 
 CFLAGS = -O2
+CPPFLAGS = -std=c++11
 
 all: calc
 
@@ -17,10 +18,10 @@ calc: $(OBJ)
 	$(CC) $(LDFLAGS) -o $@ $(OBJ) -lstdc++
 
 .cpp.o:
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o $@ $<
 
 .cc.o:
-	$(CC) -c $(CFLAGS) -o $@ $<
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o $@ $<
 
 $(BISON_OUTPUT): calc-parser.yy
 	bison -d -ra -ocalc-parser.cc calc-parser.yy

@@ -23,8 +23,8 @@ enum {
 class calc_driver;
 class cnode {
   public:
-	cnode(int op, cnode *left, cnode *right=0)
     // a @ b, @a : a+b, a-b, a*b, a/b, -a
+	cnode(int op, cnode *left, cnode *right=nullptr)
 		: op_(op), left_(left), right_(right), value_(0), string_(0)
 	{
 	}
