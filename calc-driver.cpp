@@ -66,3 +66,68 @@ void calc_driver::lcomment(const std::string *value)
     delete value;
 }
 
+void print_node(const cnode *p, int nestlev = 0)
+{
+    for (int i = 0; i < nestlev; i++) {
+        std::cout << "  ";
+    }
+    
+    if (nestlev >= 1) {
+        std::cout << " |-- ";
+    }
+    
+    if (p == nullptr) {
+        std::cout << "nullptr" << std::endl;
+        return;
+    }
+    
+    const char * opname;
+    switch (p->op()) {
+    case OP_NEG:        opname = "NEG";     break;
+    case OP_PLUS:       opname = "PLUS";    break;
+    case OP_MINUS:      opname = "MINUS";   break;
+    case OP_TIMES:      opname = "TIMES";   break;
+    case OP_DIVIDE:     opname = "DIVIDE";  break;
+    case OP_NAMEVAL:    opname = "NAMEVAL"; break;
+    case OP_IVAL:       opname = "IVAL";    break;
+    case OP_ARGS:       opname = "ARGS";    break;
+    case OP_EMPTY:      opname = "EMPTY";   break;
+    default:            opname = "unknown"; break;
+    }
+    
+    std::cout << "cnode " << opname << std::endl;
+    print_node(p->left(), nestlev+1);
+    print_node(p->right(), nestlev+1);
+}
+
+template <class T>
+void listnodes(const cnode *node, const T& fn)
+{
+    if (node == nullptr) return;
+    listnodes(node->left(), fn);
+    listnodes(node->right(), fn);
+    if (node->op() == OP_NAMEVAL) {
+        fn(node->string());
+    }
+}
+
+// 関数定義
+void calc_driver::declfn(const std::string *name, cnode *args)
+{
+    std::cout << "DECL_FN: " << *name << std::endl;
+    
+    // TODO もうちょっとすっきり表示したい
+    //print_node(args);
+    
+    // 引数列を取得
+    std::vector<std::string> names;
+    listnodes(args, [&](std::string n) { names.push_back(n); });
+    
+    for (auto &&e : names) {
+        std::cout << "arg: " << e << std::endl;
+    }
+    
+    delete name;
+    delete args;
+}
+

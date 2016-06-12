@@ -41,6 +41,7 @@ lcmnt #[^\n]*
 
 "l"			return token::TK_LIST;
 "p"			return token::TK_PRINT;
+"fn"        return token::TK_FN;
 
 [-+*/=()\n]		return yy::calc_parser::token_type(yytext[0]);
 

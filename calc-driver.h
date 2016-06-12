@@ -34,6 +34,7 @@ class calc_driver {
 	void print(cnode *node);
 	void list();
     void lcomment(const std::string *value);
+    void declfn(const std::string *name, cnode *args);
 
 	// Error handling.
 	void error(const std::string& m);

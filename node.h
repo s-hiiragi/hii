@@ -15,7 +15,9 @@ enum {
 	OP_TIMES,
 	OP_DIVIDE,
 	OP_NAMEVAL,
-	OP_IVAL
+	OP_IVAL, 
+    OP_ARGS, // 引数情報ノード
+    OP_EMPTY
 } ;
 
 // ノード

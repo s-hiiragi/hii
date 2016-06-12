@@ -44,12 +44,16 @@ class calc_driver;
 /* keywords */
 %token          TK_PRINT            "p"
 %token          TK_LIST             "l"
+%token          TK_FN               "fn"
 
 %type <node>		expr
+%type <node>        args
+%type <node>        arg
 
 %destructor { delete $$; } "id"
 %destructor { delete $$; } expr
 %destructor { delete $$; } "lcmnt"
+%destructor { delete $$; } args
 
 %left '+' '-';
 %left '*' '/';
@@ -71,8 +75,13 @@ state	: '\n'                          { ; }
 state2	: "id" '=' expr              	{ driver.assign($1, $3); }
 		| "p" expr  		    		{ driver.print($2); }
 		| "l"   	    				{ driver.list(); }
-        | "fn" 
+        | "fn" "id" args                { driver.declfn($2, $3); }
 		;
+
+args    : %empty                        { $$ = new cnode(OP_EMPTY, nullptr, nullptr); }
+        | args arg                      { $$ = new cnode(OP_ARGS, $1, $2); }
+
+arg     : "id"                          { $$ = new cnode(OP_NAMEVAL, $1); }
 
 expr	: expr '-' expr					{ $$ = new cnode(OP_MINUS, $1, $3); }
 		| expr '+' expr					{ $$ = new cnode(OP_PLUS, $1, $3); }
