@@ -80,7 +80,7 @@ expr	: expr '-' expr					{ $$ = new cnode(OP_MINUS, $1, $3); }
 		| expr '/' expr					{ $$ = new cnode(OP_DIVIDE, $1, $3); }
 		| '-' expr %prec NEG			{ $$ = new cnode(OP_NEG, $2); }
 		| '(' expr ')'					{ $$ = $2; }
-		| "id"		        			{ $$ = new cnode(OP_VALUE, $1); }
+		| "id"		        			{ $$ = new cnode(OP_NAMEVAL, $1); }
 		| "ival"						{ $$ = new cnode(OP_IVAL, $1); }
 		;
 

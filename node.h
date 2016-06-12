@@ -14,7 +14,7 @@ enum {
 	OP_MINUS,
 	OP_TIMES,
 	OP_DIVIDE,
-	OP_VALUE,
+	OP_NAMEVAL,
 	OP_IVAL
 } ;
 

@@ -21,7 +21,7 @@ int cnode::expr(calc_driver *driver) const
 	  case OP_IVAL:
 		return value_;
 
-	  case OP_VALUE:
+	  case OP_NAMEVAL:
 		return driver->value(string_);
 
 	  case OP_NEG:
