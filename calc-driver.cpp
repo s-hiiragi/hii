@@ -3,6 +3,7 @@
 #include "calc-driver.h"
 #include "calc-parser.hh"
 
+using namespace std;
 
 calc_driver::calc_driver()
 {
@@ -12,7 +13,7 @@ calc_driver::~calc_driver()
 {
 }
 
-bool calc_driver::calc(const std::string &f)
+bool calc_driver::calc(const string &f)
 {
 	file = f;
 	scan_begin();								// スキャナー初期化
@@ -27,14 +28,14 @@ bool calc_driver::calc(const std::string &f)
 
 // エラーメッセージを出力
 
-void calc_driver::error(const std::string& m)
+void calc_driver::error(const string& m)
 {
-	std::cerr << m << std::endl;
+	cerr << m << endl;
 }
 
 // 代入処理
 
-void calc_driver::assign(const std::string *value, cnode *node)
+void calc_driver::assign(const string *value, cnode *node)
 {
 	values[*value] = node->expr(this);
 	delete value;		// 後始末は自分で行う
@@ -43,41 +44,41 @@ void calc_driver::assign(const std::string *value, cnode *node)
 
 void calc_driver::print(cnode *node)
 {
-	std::cout << node->expr(this) << std::endl;
+	cout << node->expr(this) << endl;
 	delete node;
 }
 
 struct list_action {
-	void operator()(const std::pair<std::string, int> &it)
+	void operator()(const pair<string, int> &it)
 	{
-		std::cout << it.first << " = " << it.second << std::endl;
+		cout << it.first << " = " << it.second << endl;
 	}
 } ;
 
 void calc_driver::list()
 {
     // TODO range-based for, lambda-functionに変える
-	std::for_each(values.begin(), values.end(), list_action());
+	for_each(values.begin(), values.end(), list_action());
 }
 
-void calc_driver::lcomment(const std::string *value)
+void calc_driver::lcomment(const string *value)
 {
-    std::cout << "COMMENT: " << *value << std::endl;
+    cout << "COMMENT: " << *value << endl;
     delete value;
 }
 
 void print_node(const cnode *p, int nestlev = 0)
 {
     for (int i = 0; i < nestlev; i++) {
-        std::cout << "  ";
+        cout << "  ";
     }
     
     if (nestlev >= 1) {
-        std::cout << " |-- ";
+        cout << " |-- ";
     }
     
     if (p == nullptr) {
-        std::cout << "nullptr" << std::endl;
+        cout << "nullptr" << endl;
         return;
     }
     
@@ -95,7 +96,7 @@ void print_node(const cnode *p, int nestlev = 0)
     default:            opname = "unknown"; break;
     }
     
-    std::cout << "cnode " << opname << std::endl;
+    cout << "cnode " << opname << endl;
     print_node(p->left(), nestlev+1);
     print_node(p->right(), nestlev+1);
 }
@@ -112,19 +113,19 @@ void listnodes(const cnode *node, const T& fn)
 }
 
 // 関数定義
-void calc_driver::declfn(const std::string *name, cnode *args)
+void calc_driver::declfn(const string *name, cnode *args)
 {
-    std::cout << "DECL_FN: " << *name << std::endl;
+    cout << "DECL_FN: " << *name << endl;
     
     // TODO もうちょっとすっきり表示したい
     //print_node(args);
     
     // 引数列を取得
-    std::vector<std::string> names;
-    listnodes(args, [&](std::string n) { names.push_back(n); });
+    vector<string> names;
+    listnodes(args, [&](string n) { names.push_back(n); });
     
     for (auto &&e : names) {
-        std::cout << "arg: " << e << std::endl;
+        cout << "arg: " << e << endl;
     }
     
     delete name;
@@ -133,7 +134,7 @@ void calc_driver::declfn(const std::string *name, cnode *args)
 
 void calc_driver::ret(cnode *node)
 {
-    std::cout << "RET: " << node->op() << std::endl;
+    cout << "RET: " << node->op() << endl;
     delete node;
 }
 
