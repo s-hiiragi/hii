@@ -59,7 +59,7 @@ lcmnt #[^\n]*
 				}
 {id}			{
 					yylval->sval = new std::string(yytext);
-					return token::TK_IDENTIFIER;
+					return token::TK_ID;
 				}
 {lcmnt}         {
                     yylval->lcmnt = new std::string(yytext);
