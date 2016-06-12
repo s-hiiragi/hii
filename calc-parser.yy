@@ -83,13 +83,13 @@ state2	: "id" '=' expr              	{ driver.assign($1, $3); }
         | "ret" retval                  { driver.ret($2); }
 		;
 
-retval  : %empty                        { $$ = new cnode(OP_EMPTY, nullptr, nullptr); }
-        | expr                          { $$ = $1; }
-
 args    : %empty                        { $$ = new cnode(OP_EMPTY, nullptr, nullptr); }
         | args arg                      { $$ = new cnode(OP_ARGS, $1, $2); }
 
 arg     : "id"                          { $$ = new cnode(OP_NAMEVAL, $1); }
+
+retval  : %empty                        { $$ = new cnode(OP_EMPTY, nullptr, nullptr); }
+        | expr                          { $$ = $1; }
 
 expr	: expr '-' expr					{ $$ = new cnode(OP_MINUS, $1, $3); }
 		| expr '+' expr					{ $$ = new cnode(OP_PLUS, $1, $3); }
