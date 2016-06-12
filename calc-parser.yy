@@ -28,8 +28,8 @@ class calc_driver;
 {
 	int                 ival;
 	std::string        *sval;
-    cnode              *expr;
     std::string       *lcmnt;
+    cnode              *node;
 }
 
 %{
@@ -45,7 +45,7 @@ class calc_driver;
 %token          TK_PRINT            "p"
 %token          TK_LIST             "l"
 
-%type <expr>		expr
+%type <node>		expr
 
 %destructor { delete $$; } "id"
 %destructor { delete $$; } expr
