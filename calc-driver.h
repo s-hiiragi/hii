@@ -20,12 +20,16 @@ class calc_driver {
 	virtual ~calc_driver();
 
 	std::string &get_filename() { return file; }
+    
 	bool calc(const std::string &f);
 
+    // 変数の値を取得
 	int value(const std::string *name)
 	{
 		return values[*name];
 	}
+    
+    // 構文にマッチした時のアクション
 	void assign(const std::string *value, cnode *node);
 	void print(cnode *node);
 	void list();

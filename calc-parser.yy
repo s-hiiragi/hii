@@ -31,14 +31,16 @@ class calc_driver;
     cnode              *expr;
     std::string       *lcmnt;
 }
+
 %{
 #include "calc-driver.h"
 %}
 
 %token          TK_EOF          0   "end of file"
+/* literals */
 %token <ival>   TK_IVAL             "ival"
 %token <sval>   TK_IDENTIFIER       "id"
-/* modified by hirok */
+/* keywords */
 %token          TK_PRINT            "p"
 %token          TK_LIST             "l"
 %token <lcmnt>  TK_LCOMMENT         "lcmnt"

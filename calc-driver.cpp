@@ -3,19 +3,14 @@
 #include "calc-driver.h"
 #include "calc-parser.hh"
 
-// コンストラクタ
 
 calc_driver::calc_driver()
 {
 }
 
-// デストラクタ
-
 calc_driver::~calc_driver()
 {
 }
-
-// 計算
 
 bool calc_driver::calc(const std::string &f)
 {
@@ -61,6 +56,7 @@ struct list_action {
 
 void calc_driver::list()
 {
+    // TODO range-based for, lambda-functionに変える
 	std::for_each(values.begin(), values.end(), list_action());
 }
 

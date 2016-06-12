@@ -2,6 +2,7 @@
 #include "calc-driver.h"
 #include "calc-parser.hh"
 
+// ツリーの評価をしている
 int cnode::expr(calc_driver *driver) const
 {
 	switch (op_) {
