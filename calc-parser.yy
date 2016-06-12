@@ -37,13 +37,13 @@ class calc_driver;
 %}
 
 %token          TK_EOF          0   "end of file"
+%token <lcmnt>  TK_LCOMMENT         "lcmnt"
 /* literals */
 %token <ival>   TK_IVAL             "ival"
 %token <sval>   TK_ID               "id"
 /* keywords */
 %token          TK_PRINT            "p"
 %token          TK_LIST             "l"
-%token <lcmnt>  TK_LCOMMENT         "lcmnt"
 
 %type <expr>		expr
 
