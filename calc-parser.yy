@@ -45,10 +45,12 @@ class calc_driver;
 %token          TK_PRINT            "p"
 %token          TK_LIST             "l"
 %token          TK_FN               "fn"
+%token          TK_RET              "ret"
 
 %type <node>		expr
 %type <node>        args
 %type <node>        arg
+%type <node>        retval
 
 %destructor { delete $$; } "id"
 %destructor { delete $$; } expr
@@ -76,7 +78,11 @@ state2	: "id" '=' expr              	{ driver.assign($1, $3); }
 		| "p" expr  		    		{ driver.print($2); }
 		| "l"   	    				{ driver.list(); }
         | "fn" "id" args                { driver.declfn($2, $3); }
+        | "ret" retval                  { driver.ret($2); }
 		;
+
+retval  : %empty                        { $$ = new cnode(OP_EMPTY, nullptr, nullptr); }
+        | expr                          { $$ = $1; }
 
 args    : %empty                        { $$ = new cnode(OP_EMPTY, nullptr, nullptr); }
         | args arg                      { $$ = new cnode(OP_ARGS, $1, $2); }

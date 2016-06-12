@@ -131,3 +131,9 @@ void calc_driver::declfn(const std::string *name, cnode *args)
     delete args;
 }
 
+void calc_driver::ret(cnode *node)
+{
+    std::cout << "RET: " << node->op() << std::endl;
+    delete node;
+}
+
