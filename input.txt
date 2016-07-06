@@ -1,0 +1,48 @@
+# variable declaration and substitution
+a = 10
+b = 20
+a = 30 # comment
+
+# expression
+c = a + b * 2
+d = (a + 1) * (-b + 2)
+p a + b * -c
+
+# line comment
+lc = 0 # line comment
+
+# function declaration
+
+fn hoge
+ret
+
+fn pow a
+ret a * a
+
+fn add a, b
+ret a + b
+
+# function call
+hoge
+pow 10
+add 1, 2
+#add(1, 2) # tuppleリテラルが必要
+
+# standard function 
+# 
+# list variables
+l
+
+# print value of expression
+a = -1
+p a
+
+# iteration
+loop
+    p a
+end
+
+loop 10
+    p a*2
+end
+
