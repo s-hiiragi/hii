@@ -17,7 +17,7 @@
 #undef yywrap
 #define yywrap() 1
 
-#define yyterminate()	return token::TK_EOF
+#define yyterminate()   return token::TK_EOF
 %}
 
 %option noyywrap nounput batch
@@ -34,52 +34,56 @@ lcmnt #[^\n]*
 
 %%
 %{
-	typedef yy::calc_parser::token token;
+    typedef yy::calc_parser::token token;
 
-	std::string string_buffer;
+    std::string string_buffer;
 %}
 
-"l"			return token::TK_LIST;
-"p"			return token::TK_PRINT;
+"p"         return token::TK_PRINT;
+"l"         return token::TK_LIST;
+"if"        return token::TK_IF;
+"else"      return token::TK_ELSE;
+"end"       return token::TK_END;
+"loop"      return token::TK_LOOP;
 "fn"        return token::TK_FN;
 "ret"       return token::TK_RET;
 
-[-+*/=()\n]		return yy::calc_parser::token_type(yytext[0]);
+[-+*/=()\n,]    return yy::calc_parser::token_type(yytext[0]);
 
-{blank}+		;
-{int}			{
-					errno = 0;
-					long n = strtol(yytext, NULL, 10);
-					if (n < LONG_MIN || n > LONG_MAX || errno == ERANGE)
-						driver.error("整数が範囲外です。");
-					yylval->ival = n;
-					return token::TK_IVAL;
-				}
-"0"				{
-					yylval->ival = 0;
-					return token::TK_IVAL;
-				}
-{id}			{
-					yylval->sval = new std::string(yytext);
-					return token::TK_ID;
-				}
-{lcmnt}         {
-                    yylval->lcmnt = new std::string(yytext);
-                    return token::TK_LCOMMENT;
+{blank}+        ;
+{int}           {
+                    errno = 0;
+                    long n = strtol(yytext, NULL, 10);
+                    if (n < LONG_MIN || n > LONG_MAX || errno == ERANGE)
+                        driver.error("整数が範囲外です。");
+                    yylval->ival = n;
+                    return token::TK_INT;
                 }
-.				driver.error("この文字を識別子で使用することはできません。");
+"0"             {
+                    yylval->ival = 0;
+                    return token::TK_INT;
+                }
+{id}            {
+                    yylval->sval = new std::string(yytext);
+                    return token::TK_ID;
+                }
+{lcmnt}         {
+                    yylval->sval = new std::string(yytext);
+                    return token::TK_LCMNT;
+                }
+.               driver.error("この文字を識別子で使用することはできません。", yytext);
 
 %%
 
 void calc_driver::scan_begin()
 {
-	if ((yyin = fopen(file.c_str(), "r")) == 0)
-		error(file + " がオープンできません。");
+    if ((yyin = fopen(file.c_str(), "r")) == 0)
+        error(file + " がオープンできません。");
 }
 
 void calc_driver::scan_end()
 {
-	fclose(yyin);
-	yylex_destroy();
+    fclose(yyin);
+    yylex_destroy();
 }
 

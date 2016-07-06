@@ -1,15 +1,13 @@
-SOURCES = calc.cpp node.cpp calc-driver.cpp calc-parser.yy calc-scanner.ll
-HEADERS = calc-driver.h node.h
-OBJ = calc.o node.o calc-driver.o calc-parser.o calc-scanner.o
+SOURCES = calc.cpp node.cpp exprlist.cpp arglist.cpp calc-driver.cpp calc-parser.yy calc-scanner.ll
+HEADERS = calc-driver.h node.h arglist.h exprlist.h
+OBJ = calc.o node.o exprlist.o arglist.o calc-driver.o calc-parser.o calc-scanner.o
 FLEX_OUTPUT = calc-scanner.cc
 BISON_OUTPUT = calc-parser.cc calc-parser.hh location.hh position.hh
 
-CFLAGS = -O2
-CPPFLAGS = -std=c++11
+override CFLAGS += -O2
+override CPPFLAGS += -std=c++11
 
 all: calc
-
-#convert: $(SOURCES) $(HEADERS)
 
 #.SUFFIXES:
 #.SUFFIXES: .cpp .cc .ll .yy .o
@@ -41,10 +39,13 @@ depend:
 # DO NOT DELETE
 
 calc.o: calc-driver.h calc-parser.hh stack.hh node.h location.hh position.hh
-node.o: node.h calc-driver.h calc-parser.hh stack.hh location.hh position.hh
-calc-driver.o: calc-driver.h calc-parser.hh stack.hh node.h location.hh
+#node.o: node.h calc-driver.h calc-parser.hh stack.hh location.hh position.hh
+node.o: node.h calc-driver.h
+exprlist.o: node.h exprlist.h
+arglist.o: node.h arglist.h
+calc-driver.o: calc-driver.h calc-parser.hh stack.hh node.h exprlist.h arglist.h location.hh
 calc-driver.o: position.hh
-calc-parser.o: node.h calc-driver.h calc-parser.hh stack.hh location.hh
+calc-parser.o: node.h exprlist.h arglist.h calc-driver.h calc-parser.hh stack.hh location.hh
 calc-parser.o: position.hh
 calc-scanner.o: calc-driver.h calc-parser.hh stack.hh node.h location.hh
 calc-scanner.o: position.hh
