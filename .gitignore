@@ -2,5 +2,6 @@
 *.output
 *.hh
 *.cc
+*.swp
 calc
 
