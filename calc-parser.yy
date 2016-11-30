@@ -74,51 +74,84 @@ class calc_driver;
 %%
 %start unit;
 
-unit    : state
-        | unit state
+unit    : stats                         { driver.set_ast($1); }
         ;
 
-state   : '\n'
-        | lcmnt '\n'
-        | state2 '\n'
-        | state2 lcmnt '\n'
+stats   : stats2                        { $$ = $1; }
+        | stats stats2                  { $$ = &($1->concat($2)); }
         ;
 
-lcmnt   : "lcmnt"                       { driver.lcmnt($1); }
+stats2  : %empty                        { $$ = new clist(OP_STATS); }
+        | '\n'                          { $$ = new clist(OP_STATS); }
+        | lcmnt '\n'                    { $$ = new clist(OP_STATS, $1); }
+        | stat '\n'                     { $$ = new clist(OP_STATS, $1); }
+        | stat lcmnt '\n'               { $$ = new clist(OP_STATS, $1, $2); }
         ;
 
-state2  : "id" '=' expr                 { driver.assign($1, $3); }
-        | "p" expr                      { driver.print($2); }
-        | "l"                           { driver.listvars(); }
-        | "id" exprs                    { driver.call_state($1, $2); }
-        | "if" expr        	            { driver.if_state($2); }
-        | "else" "if" expr              { driver.elseif_state($3); }
-        | "else"                        { driver.else_state(); }
-        | "end"                         { driver.end_state(); }
-        | "loop" expr                   { driver.loop_state($2); }
-        | "loop"                        { driver.loop_state(); }
-        | "fn" "id" args                { driver.declfn($2, $3); }
-        | "ret" expr                    { driver.ret($2); }
-        | "ret"                         { driver.ret(); }
+stat    : stat_assign                   { $$ = $1; }
+        | stat_p                        { $$ = $1; }
+        | stat_l                        { $$ = $1; }
+        | stat_call                     { $$ = $1; }
+        | stat_if                       { $$ = $1; }
+        | stat_loop                     { $$ = $1; }
+        | stat_fn                       { $$ = $1; }
         ;
 
-exprs   : %empty                        { $$ = new exprlist(); }
-        | expr                          { $$ = new exprlist($1); }
-        | exprs ',' expr                { $$ = &($1->concat($3)); }
+stat_assign : id '=' expr                   { $$ = new cnode(OP_ASSIGN, $1, $3); }
+            ;
+stat_p      : id_p exprs                    { $$ = new cnode(OP_CALL, $1, $2); }
+            ;
+stat_l      : id_l exprs                    { $$ = new cnode(OP_CALL, $1, $2); }
+            ;
+stat_call   : id exprs                      { $$ = new cnode(OP_CALL, $1, $2); }
+            ;
+stat_if     : if elifs else "end"           { $$ = new clist(OP_STATIF, $1, $2, $3); }
+            ;
+stat_loop   : "loop" expr '\n' stats "end"  { $$ = new cnode(OP_STATLOOP, $2, $4); }
+            ;
+stat_fn     : "fn" args '\n' stats "end"    { $$ = new cnode(OP_FN, $2, $3); }
+            ;
 
-args    : %empty                        { $$ = new arglist(); }
-        | "id"                          { $$ = new arglist($1); }
-        | args ',' "id"                 { $$ = &($1->concat($3)); }
+if          : "if" expr '\n' stats          { $$ = new cnode(OP_IFTHEN, $2, $4); }
+            ;
+elifs       : %empty                        { $$ = new clist(OP_ELIFS); }
+            | elif                          { $$ = new clist(OP_ELIFS, $1); }
+            | elifs elif                    { $$ = $1.concat($2); }
+            ;
+elif        : "elif" expr '\n' stats        { $$ = new cnode(OP_ELIF, expr, stats); }
+            ;
+else        : %empty                        { $$ = new cleaf(OP_EMPTY); }
+            | "else" '\n' stats             { $$ = new cnode(OP_ELSE, $3); }
+            ;
+
+args        : %empty                        { $$ = new clist(OP_ARGS); }
+            | id                            { $$ = new clist(OP_ARGS, $1); }
+            | args ',' id                   { $$ = &($1->concat($3)); }
+            ;
+
+exprs       : %empty                        { $$ = new clist(OP_EXPRS); }
+            | expr                          { $$ = new clist(OP_EXPRS, $1); }
+            | exprs ',' expr                { $$ = &($1->concat($3)); }
+            ;
+
+expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); }
+            | expr '+' expr                 { $$ = new cnode(OP_PLUS, $1, $3); }
+            | expr '*' expr                 { $$ = new cnode(OP_TIMES, $1, $3); }
+            | expr '/' expr                 { $$ = new cnode(OP_DIVIDE, $1, $3); }
+            | '-' expr %prec NEG            { $$ = new cnode(OP_NEG, $2); }
+            | '(' expr ')'                  { $$ = $2; }
+            | id                            { $$ = $1; }
+            | "int"                         { $$ = new cleaf(OP_INT, $1); }
+            ;
+
+/* 末端 */
+lcmnt   : "lcmnt"                       { $$ = new cleaf(OP_LCMNT, $1); }
         ;
-
-expr    : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); }
-        | expr '+' expr                 { $$ = new cnode(OP_PLUS, $1, $3); }
-        | expr '*' expr                 { $$ = new cnode(OP_TIMES, $1, $3); }
-        | expr '/' expr                 { $$ = new cnode(OP_DIVIDE, $1, $3); }
-        | '-' expr %prec NEG            { $$ = new cnode(OP_NEG, $2); }
-        | '(' expr ')'                  { $$ = $2; }
-        | "id"                          { $$ = new cnode(OP_ID, $1); }
-        | "int"                         { $$ = new cnode(OP_INT, $1); }
+id      : "id"                          { $$ = new cleaf(OP_ID, $1); }
+        ;
+id_p    : "p"                           { $$ = new cleaf(OP_ID, new std::string("p")); }
+        ;
+id_l    : "l"                           { $$ = new cleaf(OP_ID, new std::string("l")); }
         ;
 
 %%

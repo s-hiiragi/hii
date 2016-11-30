@@ -1,20 +1,27 @@
 #ifndef NODE_H_
 #define NODE_H_
 
-//継承を使うには使う必然性が必要
-
 #include <string>
-//#include <vector>
-//#include <map>
-//#include <functional>
-//#include <algorithm>
 
-// ノードの種類
-enum {
+typedef enum node_type_
+{
     OP_UNKNOWN,
     
     // なんかのノード
     OP_NODE,
+
+    // 文
+    OP_ASSIGN,
+    OP_PRINT,
+    OP_LIST,
+    OP_CALL,
+    OP_IF,
+    OP_ELIF,
+    OP_ELSE,
+    OP_END,
+    OP_LOOP,
+//  OP_FN,  // 関数内での関数定義は許さないので種別は不要
+    OP_RET,
 
     // 単項演算子
     OP_NEG,
@@ -29,14 +36,16 @@ enum {
     OP_ID,
     OP_INT,
     OP_EMPTY // 値なしリーフ
-};
+} node_type;
 
 // ノード
 
 class calc_driver;
 class cnode {
   public:
-    template <class T> // T is const cnode *
+    // 左リーフ優先で深さ優先探索
+    // @param[in] callback void (*callback)(const cnode *node, unsigned int nestlev)
+    template <class T>
     static void list(const cnode *node, const T &callback, unsigned int nestlev=0)
     {
         if (node == nullptr) return;
@@ -44,6 +53,8 @@ class cnode {
         list(node->left_, callback, nestlev+1);
         list(node->right_, callback, nestlev+1);
     }
+
+    static void print(const cnode *node, unsigned int nestlev=0);
     
     cnode(int op, cnode *left=nullptr, cnode *right=nullptr)
         : op_(op), left_(left), right_(right) {}
@@ -61,9 +72,8 @@ class cnode {
         delete sval_;
     }
 
-    // ツリーの評価をしている
     int expr(calc_driver *driver) const;
-
+    
     const char *name() const;
 
     int op() const { return op_; }

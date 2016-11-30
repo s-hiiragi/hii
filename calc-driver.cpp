@@ -7,6 +7,7 @@
 #include "node.h"
 #include "exprlist.h"
 #include "arglist.h"
+#include "cfn.h"
 
 using namespace std;
 
@@ -20,7 +21,7 @@ calc_driver::~calc_driver()
 
 bool calc_driver::calc(const string &f)
 {
-    file = f;
+    file_ = f;
     scan_begin();                               // スキャナー初期化
     yy::calc_parser parser(*this);              // パーサー構築
     int result = parser.parse();                // 構文解析
@@ -39,7 +40,7 @@ void calc_driver::lcmnt(const string *text)
 
 void calc_driver::assign(const std::string *name, cnode *expr)
 {
-    values[*name] = expr->expr(this);
+    values_[*name] = expr->expr(this);
     delete name;       // 後始末は自分で行う
     delete expr;
 }
@@ -60,7 +61,7 @@ struct list_action {
 void calc_driver::listvars()
 {
     // TODO range-based for, lambda-functionに変える
-    for_each(values.begin(), values.end(), list_action());
+    for_each(values_.begin(), values_.end(), list_action());
 }
 
 void calc_driver::call_state(const std::string *name, exprlist *exprs)
@@ -97,58 +98,59 @@ void calc_driver::loop_state(cnode *expr)
     delete expr;
 }
 
-void print_node(const cnode *p, int nestlev = 0)
+void calc_driver::declfn(const string *name, arglist *arglst)
 {
-    if (p == nullptr) return;
-    
-    for (int i = 0; i < nestlev; i++) {
-        cout << "  ";
-    }
-    
-    if (nestlev >= 1) {
-        cout << " |-- ";
-    }
-    
-    if (p == nullptr) {
-        cout << "nullptr" << endl;
+    cout << "DECL_FN: " << *name << endl;
+
+    if (curfn_ != "") {
+        cerr << "ERROR: " << *name << " is already declared." << endl;
         return;
     }
     
-    cout << "cnode " << p->name() << endl;
-    print_node(p->left(), nestlev+1);
-    print_node(p->right(), nestlev+1);
-}
-
-void calc_driver::declfn(const string *name, arglist *args)
-{
-    cout << "DECL_FN: " << *name << endl;
-    
-    // TODO もうちょっとすっきり表示したい
-    print_node(args);
+    cnode::print(arglst);
     
     // 引数列を取得
-    vector<string> names;
+    vector<string> args;
     //listnodes(args, [&](string n) { names.push_back(n); });
-    cnode::list(args, [&](const cnode *n, unsigned int nestlev) {
-        if (n->op() == OP_ID) names.push_back(n->sval());
+    cnode::list(arglst, [&](const cnode *n, unsigned int nestlev) {
+        if (n->op() == OP_ID) args.push_back(n->sval());
     });
     
-    for (auto &&e : names) {
-        cout << "arg: " << e << endl;
+    for (auto &&a : args) {
+        cout << "arg: " << a << endl;
     }
+
+    // 関数名とシグネチャを登録する
+    cfn fn(*name, args);
+    add_fn(*name, fn);
+
+    // 現在のスコープの関数名に名前を設定する
+    curfn_ = *name;
+
+    // 以後のコードはDECL_FNの定義に追加する(ENDがくるまで)
     
     delete name;
-    delete args;
+    delete arglst;
 }
 
 void calc_driver::ret(cnode *expr)
 {
-    if (expr != nullptr) {
-        cout << "RET: op=" << expr->name() << endl;
+    cout << "RET: op=" << (expr != nullptr ? expr->name() : "null") << endl;
+
+    if (curfn_ == "") {
+        cerr << "ERROR: 関数定義の外ではretは使えません" << endl;
         delete expr;
-    } else {
-        cout << "RET: op=null" << endl;
+        return;
     }
+
+    // retステートメントを関数のボディに追加
+    // XXX 下でセグフォする
+    get_fn(curfn_).add_stat(cnode(OP_RET, expr));
+
+    // 現在のスコープの関数名を空にする
+    curfn_ = "";
+
+    delete expr;
 }
 
 // エラーメッセージを出力

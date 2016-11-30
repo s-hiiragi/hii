@@ -77,8 +77,8 @@ lcmnt #[^\n]*
 
 void calc_driver::scan_begin()
 {
-    if ((yyin = fopen(file.c_str(), "r")) == 0)
-        error(file + " がオープンできません。");
+    if ((yyin = fopen(file_.c_str(), "r")) == 0)
+        error(file_ + " がオープンできません。");
 }
 
 void calc_driver::scan_end()

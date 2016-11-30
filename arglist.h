@@ -11,7 +11,7 @@ class arglist : public cnode
       : cnode(OP_EMPTY) {}
 
     arglist(std::string *name)
-      : cnode(OP_NODE, new cnode(OP_EMPTY), new cnode(OP_ID, name)) {}
+      : cnode(OP_NODE, new cnode(OP_ID, name), new cnode(OP_EMPTY)) {}
     
     arglist & concat(std::string *name);
 };

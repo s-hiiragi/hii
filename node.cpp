@@ -1,8 +1,38 @@
+#include <iostream>
 #include "node.h"
 #include "calc-driver.h"
 //#include "calc-parser.hh"
 
-// ツリーの評価をしている
+using namespace std;
+
+void cnode::print(const cnode *node, unsigned int nestlev)
+{
+    if (node == nullptr) return;
+    
+    for (int i = 0; i < nestlev; i++) {
+        cout << "  ";
+    }
+    
+    if (nestlev >= 1) {
+        cout << "|-- ";
+    }
+    
+    cout << node->name();
+    switch (node->op())
+    {
+    case OP_ID:
+        cout << " " << node->sval();
+        break;
+    case OP_INT:
+        cout << " " << node->ival();
+        break;
+    }
+    cout << endl;
+
+    cnode::print(node->left(), nestlev+1);
+    cnode::print(node->right(), nestlev+1);
+}
+
 int cnode::expr(calc_driver *driver) const
 {
     switch (op_) {
@@ -22,7 +52,7 @@ int cnode::expr(calc_driver *driver) const
         return ival_;
 
       case OP_ID:
-        return driver->value(sval_);
+        return driver->value(*sval_);
 
       case OP_NEG:
         return -left_->expr(driver);
@@ -37,6 +67,16 @@ const char * cnode::name() const
     switch (op_)
     {
     case OP_NODE:   return "NODE";      break;
+    case OP_ASSIGN: return "ASSIGN";    break;
+    case OP_PRINT:  return "PRINT";     break;
+    case OP_LIST:   return "LIST";      break;
+    case OP_CALL:   return "CALL";      break;
+    case OP_IF:     return "IF";        break;
+    case OP_ELIF:   return "ELIF";      break;
+    case OP_ELSE:   return "ELSE";      break;
+    case OP_END:    return "END";       break;
+    case OP_LOOP:   return "LOOP";      break;
+    case OP_RET:    return "RET";       break;
     case OP_NEG:    return "NEG";       break;
     case OP_PLUS:   return "PLUS";      break;
     case OP_MINUS:  return "MINUS";     break;

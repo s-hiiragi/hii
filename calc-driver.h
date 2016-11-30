@@ -7,6 +7,7 @@
 #include "node.h"
 #include "exprlist.h"
 #include "arglist.h"
+#include "cfn.h"
 
 // Forward declarations.
 class calc_driver;
@@ -23,14 +24,15 @@ class calc_driver {
     calc_driver();
     virtual ~calc_driver();
 
-    std::string &get_filename() { return file; }
+    std::string &get_filename() { return file_; }
     
     bool calc(const std::string &f);
 
     // 変数の値を取得
-    int value(const std::string *name)
+    int value(const std::string & name)
     {
-        return values[*name];
+        // 未定義チェックを行う
+        return values_[name];
     }
     
     // 構文にマッチした時のアクション
@@ -39,6 +41,7 @@ class calc_driver {
     void print(cnode *node);
     void listvars();
     void call_state(const std::string *name, exprlist *exprs);
+
     void if_state(cnode *expr);
     void elseif_state(cnode *expr);
     void else_state();
@@ -54,9 +57,23 @@ class calc_driver {
     void scan_begin();
     void scan_end();
 
+    void add_fn(const std::string & name, const cfn & fn)
+    {
+        // 二重定義をチェックする
+        fns_[name] = fn;
+    }
+
+    cfn & get_fn(const std::string & name)
+    {
+        // 未定義チェックを行う
+        return fns_[name];
+    }
+
   private:
-    std::map<std::string, int> values;  // 変数テーブル
-    std::string file;
+    std::string file_;
+    std::map<std::string, int> values_;  // 変数テーブル
+    std::map<std::string, cfn> fns_;
+    std::string curfn_;
 };
 
 #endif
