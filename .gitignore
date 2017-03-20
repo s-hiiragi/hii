@@ -5,3 +5,6 @@
 *.swp
 calc
 
+/obj/
+/old/
+

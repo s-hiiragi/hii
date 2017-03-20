@@ -4,7 +4,7 @@
 #include <string>
 #include <map>
 #include "calc-parser.hh"
-#include "node.h"
+#include "cnode.h"
 #include "exprlist.h"
 #include "arglist.h"
 #include "cfn.h"
@@ -25,6 +25,8 @@ class calc_driver {
     virtual ~calc_driver();
 
     std::string &get_filename() { return file_; }
+
+    void set_ast(cnode *ast);
     
     bool calc(const std::string &f);
 

@@ -10,17 +10,23 @@ typedef enum node_type_
     // なんかのノード
     OP_NODE,
 
+    // 複文
+    OP_STATS,
+
+    // コメント
+    OP_LCOMMENT,
+
     // 文
     OP_ASSIGN,
     OP_PRINT,
     OP_LIST,
     OP_CALL,
-    OP_IF,
+    OP_IFTHEN,
     OP_ELIF,
     OP_ELSE,
     OP_END,
     OP_LOOP,
-//  OP_FN,  // 関数内での関数定義は許さないので種別は不要
+    OP_FN,  // 右のコメントは何？// 関数内での関数定義は許さないので種別は不要
     OP_RET,
 
     // 単項演算子
@@ -41,10 +47,19 @@ typedef enum node_type_
 // ノード
 
 class calc_driver;
+class exprlist;
+class arglist;
+
 class cnode {
+
+    friend exprlist;
+    friend arglist;
+
   public:
     // 左リーフ優先で深さ優先探索
-    // @param[in] callback void (*callback)(const cnode *node, unsigned int nestlev)
+    // @param[in] node
+    // @param[in] callback void (*callback)(const cnode *cnode, unsigned int nestlev)
+    // @param[in] nestlev
     template <class T>
     static void list(const cnode *node, const T &callback, unsigned int nestlev=0)
     {
@@ -55,25 +70,22 @@ class cnode {
     }
 
     static void print(const cnode *node, unsigned int nestlev=0);
-    
+
+    cnode()
+        : op_(OP_EMPTY), left_(nullptr), right_(nullptr) {}
+
     cnode(int op, cnode *left=nullptr, cnode *right=nullptr)
         : op_(op), left_(left), right_(right) {}
-    
-    cnode(int op, std::string *sval)
-        : op_(op), sval_(sval) {}
-    
-    cnode(int op, int ival)
-        : op_(op), ival_(ival) {}
-    
+
     virtual ~cnode()
     {
         delete left_;
         delete right_;
-        delete sval_;
     }
 
     int expr(calc_driver *driver) const;
-    
+
+    // これは何?
     const char *name() const;
 
     int op() const { return op_; }
@@ -81,22 +93,17 @@ class cnode {
     const cnode *right() const { return right_; }
     cnode *left() { return left_; }
     cnode *right() { return right_; }
-    const std::string &sval() const { return *sval_; }
-    int ival() const { return ival_; }
 
-//  protected:
+    void set_right(cnode *right) { delete right_; right_ = right; }
+
+  protected:
     void set_op(int op) { op_ = op; }
     void set_left(cnode *left) { delete left_; left_ = left; }
-    void set_right(cnode *right) { delete right_; right_ = right; }
-    void set_sval(std::string *sval) { delete sval_; sval_ = sval; }
-    void set_ival(int ival) { ival_ = ival; }
 
   private:
     int op_ = OP_EMPTY;
     cnode *left_ = nullptr;
     cnode *right_ = nullptr;
-    std::string *sval_ = nullptr;
-    int ival_ = 0;
 };
 
 #endif //NODE_H_

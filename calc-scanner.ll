@@ -40,12 +40,11 @@ lcmnt #[^\n]*
 %}
 
 "p"         return token::TK_PRINT;
-"l"         return token::TK_LIST;
 "if"        return token::TK_IF;
 "else"      return token::TK_ELSE;
+"elif"      return token::TK_ELSE;
 "end"       return token::TK_END;
-"loop"      return token::TK_LOOP;
-"fn"        return token::TK_FN;
+"fun"       return token::TK_FN;
 "ret"       return token::TK_RET;
 
 [-+*/=()\n,]    return yy::calc_parser::token_type(yytext[0]);

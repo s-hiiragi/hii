@@ -17,24 +17,20 @@
  * 
  * TODO nodeを継承、Lispのようなリストにする？
  * 
- * 
  */
-class nodelist
+class clist
 {
   public:
-    typedef node_type list_type;
+    typedef cnode::type list_type;
 
-    nodelist(list_type t)
+    clist(list_type t)
         : type_(t) {}
 
-    nodelist(list_type t, )
-        : type_(t) {}
+    ~clist() {}
 
-    ~nodelist() {}
-
-    nodelist * concat(nodelist * l);
+    clist * concat(clist * l);
   private:
-    node_type type_;
+    list_type type_;
 };
 
 #endif

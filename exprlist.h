@@ -2,10 +2,10 @@
 #define EXPRLIST_H_
 
 #include <string>
-#include "node.h"
+#include "cnode.h"
 
-class exprlist : public cnode
-{
+class exprlist : public cnode {
+
   public:
     exprlist()
       : cnode(OP_EMPTY) {}

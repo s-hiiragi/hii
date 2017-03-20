@@ -1,5 +1,5 @@
 #include <string>
-#include "node.h"
+#include "cnode.h"
 #include "exprlist.h"
 
 using namespace std;

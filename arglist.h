@@ -2,7 +2,8 @@
 #define ARGLIST_H_
 
 #include <string>
-#include "node.h"
+#include "cnode.h"
+#include "cleaf.h"
 
 class arglist : public cnode
 {
@@ -10,8 +11,9 @@ class arglist : public cnode
     arglist()
       : cnode(OP_EMPTY) {}
 
+    // 現状、arglistは引数名のリストになっている
     arglist(std::string *name)
-      : cnode(OP_NODE, new cnode(OP_ID, name), new cnode(OP_EMPTY)) {}
+      : cnode(OP_NODE, new cleaf(OP_ID, name), new cnode(OP_EMPTY)) {}
     
     arglist & concat(std::string *name);
 };

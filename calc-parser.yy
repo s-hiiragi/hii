@@ -8,7 +8,7 @@
 
 %{
 #include <string>
-#include "node.h"
+#include "cnode.h"
 #include "exprlist.h"
 #include "arglist.h"
 class calc_driver;
@@ -23,7 +23,7 @@ class calc_driver;
 %lex-param   { calc_driver& driver }
 
 // wrote by hirok
-%code requires { #include "node.h" }
+%code requires { #include "cnode.h" }
 %code requires { #include "exprlist.h" }
 %code requires { #include "arglist.h" }
 
@@ -50,17 +50,30 @@ class calc_driver;
 %token <ival>   TK_INT              "int"
 /* keywords */
 %token          TK_PRINT            "p"
-%token          TK_LIST             "l"
 %token          TK_IF               "if"
+%token          TK_ELIF             "elif"
 %token          TK_ELSE             "else"
 %token          TK_END              "end"
-%token          TK_LOOP             "loop"
-%token          TK_FN               "fn"
+%token          TK_FN               "fun"
 %token          TK_RET              "ret"
 
 %type <node>    expr
 %type <exprs>   exprs
 %type <args>    args
+%type <node>    stats
+%type <node>    stat
+%type <node>    assign_stmt
+%type <node>    if_stmt
+%type <node>    fun_stmt
+%type <node>    call_stmt
+%type <node>    print_stmt
+%type <node>    if
+%type <node>    elifs
+%type <node>    elif
+%type <node>    else
+%type <node>    lcmnt
+%type <node>    id
+%type <node>    id_p
 
 %destructor { delete $$; } "id"
 %destructor { delete $$; } "lcmnt"
@@ -77,56 +90,70 @@ class calc_driver;
 unit    : stats                         { driver.set_ast($1); }
         ;
 
-stats   : stats2                        { $$ = $1; }
-        | stats stats2                  { $$ = &($1->concat($2)); }
+stats   : stat                          { $$ = new cnode(OP_STATS, $1); }
+        | stats stat                    { cnode * p = new cnode(OP_STATS, $2); $1->set_right(p); $$ = p; }
         ;
 
-stats2  : %empty                        { $$ = new clist(OP_STATS); }
-        | '\n'                          { $$ = new clist(OP_STATS); }
-        | lcmnt '\n'                    { $$ = new clist(OP_STATS, $1); }
-        | stat '\n'                     { $$ = new clist(OP_STATS, $1); }
-        | stat lcmnt '\n'               { $$ = new clist(OP_STATS, $1, $2); }
+/* 以下のようなツリーを構築したいが、
+ * 構文ルール上、構築できるツリーの形が決まってしまう？
+ * STATS
+ *  |-- stat
+ *  |-- STATS
+ *       |-- stat
+ *       |-- STATS
+ */
+
+stat    : '\n'                          { $$ = new cnode(); }
+        | lcmnt '\n'                    { $$ = new cnode(OP_LCOMMENT, $1); }
+        | assign_stmt '\n'              { $$ = $1; }
+        | if_stmt '\n'                  { $$ = $1; }
+        | fun_stmt '\n'                 { $$ = $1; }
+        | call_stmt '\n'                { $$ = $1; }
+        | print_stmt '\n'               { $$ = $1; }
         ;
 
-stat    : stat_assign                   { $$ = $1; }
-        | stat_p                        { $$ = $1; }
-        | stat_l                        { $$ = $1; }
-        | stat_call                     { $$ = $1; }
-        | stat_if                       { $$ = $1; }
-        | stat_loop                     { $$ = $1; }
-        | stat_fn                       { $$ = $1; }
-        ;
+assign_stmt : id '=' expr                   { $$ = new cnode(OP_ASSIGN, $1, $3); }
+            ;
+/*
+if_stmt     : if elifs else "end"           { $$ = new clist(OP_STATIF, $1, $2, $3); }
+            ;
+*/
+if_stmt     : "if" expr '\n' stats elifs    { $$ = new cnode(OP_IF, $2, new cnode(OP_IFTHEN, $4, $5); }
+            ;
 
-stat_assign : id '=' expr                   { $$ = new cnode(OP_ASSIGN, $1, $3); }
+elifs       : "elif" expr '\n' stats elifs  { $$ = new cnode(OP_ELIF, $2, new cnode(OP_IFTHEN, $4, $5); }
+            : "else" stats                  { $$ = new cnode(OP_ELSE, $2); }
+            : "end"                         { $$ = null; }
             ;
-stat_p      : id_p exprs                    { $$ = new cnode(OP_CALL, $1, $2); }
+
+
+
+
+fun_stmt    : "fun" args '\n' stats "end"   { $$ = new cnode(OP_FN, $2, $4); }
             ;
-stat_l      : id_l exprs                    { $$ = new cnode(OP_CALL, $1, $2); }
+print_stmt  : id_p exprs                    { $$ = new cnode(OP_CALL, $1, $2); }
             ;
-stat_call   : id exprs                      { $$ = new cnode(OP_CALL, $1, $2); }
-            ;
-stat_if     : if elifs else "end"           { $$ = new clist(OP_STATIF, $1, $2, $3); }
-            ;
-stat_loop   : "loop" expr '\n' stats "end"  { $$ = new cnode(OP_STATLOOP, $2, $4); }
-            ;
-stat_fn     : "fn" args '\n' stats "end"    { $$ = new cnode(OP_FN, $2, $3); }
+call_stmt   : id exprs                      { $$ = new cnode(OP_CALL, $1, $2); }
             ;
 
 if          : "if" expr '\n' stats          { $$ = new cnode(OP_IFTHEN, $2, $4); }
             ;
+
 elifs       : %empty                        { $$ = new clist(OP_ELIFS); }
             | elif                          { $$ = new clist(OP_ELIFS, $1); }
-            | elifs elif                    { $$ = $1.concat($2); }
+            | elifs elif                    { $$ = $1->concat($2); }
             ;
-elif        : "elif" expr '\n' stats        { $$ = new cnode(OP_ELIF, expr, stats); }
+
+elif        : "elif" expr '\n' stats        { $$ = new cnode(OP_ELIF, $2, $4); }
             ;
-else        : %empty                        { $$ = new cleaf(OP_EMPTY); }
+
+else        : %empty                        { $$ = new cnode(); }
             | "else" '\n' stats             { $$ = new cnode(OP_ELSE, $3); }
             ;
 
 args        : %empty                        { $$ = new clist(OP_ARGS); }
             | id                            { $$ = new clist(OP_ARGS, $1); }
-            | args ',' id                   { $$ = &($1->concat($3)); }
+            | args ',' id                   { $$ = &($1->concat(new cnode(OP_ID, $3))); }
             ;
 
 exprs       : %empty                        { $$ = new clist(OP_EXPRS); }
@@ -141,17 +168,15 @@ expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); 
             | '-' expr %prec NEG            { $$ = new cnode(OP_NEG, $2); }
             | '(' expr ')'                  { $$ = $2; }
             | id                            { $$ = $1; }
-            | "int"                         { $$ = new cleaf(OP_INT, $1); }
+            | "int"                         { $$ = new cnode(OP_INT, $1); }
             ;
 
 /* 末端 */
-lcmnt   : "lcmnt"                       { $$ = new cleaf(OP_LCMNT, $1); }
+lcmnt   : "lcmnt"                       { $$ = new cnode(OP_LCOMMENT, $1); }
         ;
-id      : "id"                          { $$ = new cleaf(OP_ID, $1); }
+id      : "id"                          { $$ = new cnode(OP_ID, $1); }
         ;
-id_p    : "p"                           { $$ = new cleaf(OP_ID, new std::string("p")); }
-        ;
-id_l    : "l"                           { $$ = new cleaf(OP_ID, new std::string("l")); }
+id_p    : "p"                           { $$ = new cnode(OP_ID, new std::string("p")); }
         ;
 
 %%
@@ -159,7 +184,7 @@ id_l    : "l"                           { $$ = new cleaf(OP_ID, new std::string(
 /*
 void yy::calc_parser::error(const yy::calc_parser::location_type&, const std::string& m)
 {
-    driver.error(m);
+
 }
 */
 void yy::calc_parser::error(const std::string& m)

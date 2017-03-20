@@ -1,5 +1,5 @@
 #include <iostream>
-#include "node.h"
+#include "cnode.h"
 #include "calc-driver.h"
 //#include "calc-parser.hh"
 
@@ -21,10 +21,10 @@ void cnode::print(const cnode *node, unsigned int nestlev)
     switch (node->op())
     {
     case OP_ID:
-        cout << " " << node->sval();
+        cout << " " << dynamic_cast<const cleaf *>(node)->sval();
         break;
     case OP_INT:
-        cout << " " << node->ival();
+        cout << " " << dynamic_cast<const cleaf *>(node)->ival();
         break;
     }
     cout << endl;
@@ -49,10 +49,10 @@ int cnode::expr(calc_driver *driver) const
         return left_->expr(driver) / right_->expr(driver);
 
       case OP_INT:
-        return ival_;
+        return dynamic_cast<const cleaf *>(this)->ival();
 
       case OP_ID:
-        return driver->value(*sval_);
+        return driver->value(dynamic_cast<const cleaf *>(this)->sval());
 
       case OP_NEG:
         return -left_->expr(driver);
@@ -71,7 +71,7 @@ const char * cnode::name() const
     case OP_PRINT:  return "PRINT";     break;
     case OP_LIST:   return "LIST";      break;
     case OP_CALL:   return "CALL";      break;
-    case OP_IF:     return "IF";        break;
+    case OP_IFTHEN: return "IF";        break;
     case OP_ELIF:   return "ELIF";      break;
     case OP_ELSE:   return "ELSE";      break;
     case OP_END:    return "END";       break;

@@ -4,7 +4,7 @@
 #include <algorithm>
 #include "calc-driver.h"
 #include "calc-parser.hh"
-#include "node.h"
+#include "cnode.h"
 #include "exprlist.h"
 #include "arglist.h"
 #include "cfn.h"
@@ -17,6 +17,11 @@ calc_driver::calc_driver()
 
 calc_driver::~calc_driver()
 {
+}
+
+void calc_driver::set_ast(cnode *ast)
+{
+    std::cout << "set_ast" << std::endl;
 }
 
 bool calc_driver::calc(const string &f)
@@ -113,7 +118,7 @@ void calc_driver::declfn(const string *name, arglist *arglst)
     vector<string> args;
     //listnodes(args, [&](string n) { names.push_back(n); });
     cnode::list(arglst, [&](const cnode *n, unsigned int nestlev) {
-        if (n->op() == OP_ID) args.push_back(n->sval());
+        if (n->op() == OP_ID) args.push_back(dynamic_cast<const cleaf *>(n)->sval());
     });
     
     for (auto &&a : args) {

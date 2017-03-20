@@ -1,5 +1,26 @@
 # 開発メモ
 
+TODO
+Makefile改善
+- [ ] 生成ファイルをobjディレクトリに移動するようMakefileを変更する
+- [ ] 依存関係を自動生成する
+
+方針
+- cnodeだけでAST構築する (2017/03/08)
+
+クラス構成
+- cnode        ... ノード
+- cleaf        ... 
+- clist        ... 
+- exprlist     ... 必要？
+- argslist     ... 必要？
+- cfn          ... 何者？
+- calc_driver  ... 
+
+
+
+
+
 ・fnをどう実装するか？
   ・stateをノードとして扱い、
     構文解析時にfn/if/loopをノードにしてしまう
