@@ -1,57 +1,48 @@
-SOURCES = calc.cpp cnode.cpp exprlist.cpp arglist.cpp calc-driver.cpp calc-parser.yy calc-scanner.ll
-HEADERS = calc-driver.h cnode.h arglist.h exprlist.h
-OBJ = calc.o cnode.o exprlist.o arglist.o calc-driver.o calc-parser.o calc-scanner.o
-FLEX_OUTPUT = calc-scanner.cc
+PROG     = calc
+OUT_DIR  = out
+CPPFLAGS = 
+CXXFLAGS = -std=c++11
+
+SRCS = $(wildcard *.cpp *.yy *.ll)
+DEPS = \
+	$(addprefix $(OUT_DIR)/, $(patsubst %.cpp,%.d,$(SRCS))) \
+	$(addprefix $(OUT_DIR)/, $(patsubst %.yy,%.d,$(SRCS))) \
+	$(addprefix $(OUT_DIR)/, $(patsubst %.ll,%.d,$(SRCS)))
+OBJS = \
+	$(addprefix $(OUT_DIR)/, $(patsubst %.cpp,%.o,$(SRCS))) \
+	$(addprefix $(OUT_DIR)/, $(patsubst %.yy,%.o,$(SRCS))) \
+	$(addprefix $(OUT_DIR)/, $(patsubst %.ll,%.o,$(SRCS)))
+
+FLEX_OUTPUT  = calc-scanner.cc
 BISON_OUTPUT = calc-parser.cc calc-parser.hh location.hh position.hh
 
-override CFLAGS += -O2
-override CPPFLAGS += -std=c++11
+.PHONY: all
+all: $(FLEX_OUTPUT) $(BISON_OUTPUT) $(DEPS) $(PROG)
 
-all: calc
-
-#.SUFFIXES:
-#.SUFFIXES: .cpp .cc .ll .yy .o
-
-calc: $(OBJ)
-	$(CC) $(LDFLAGS) -o $@ $(OBJ) -lstdc++
-
-.cpp.o:
-	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o $@ $<
-
-.cc.o:
-	$(CC) -c $(CPPFLAGS) $(CFLAGS) -o $@ $<
+$(FLEX_OUTPUT): calc-scanner.ll
+	$(info FLEX_OUTPUT $@)
+	flex -8 -o$(patsubst %.ll,%.cc,$<) $<
 
 $(BISON_OUTPUT): calc-parser.yy
-	bison -d -ra -ocalc-parser.cc calc-parser.yy
+	$(info BISON_OUTPUT $@)
+	bison -d -ra -o$(patsubst %.yy,%.cc,$<) $<
 
-calc-scanner.cc: calc-scanner.ll
-	flex -8 -ocalc-scanner.cc calc-scanner.ll
+$(OUT_DIR)/%.d: %.cpp
+	@mkdir -p $(OUT_DIR)
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MM -MF $@ $<
 
-calc-parser.o: $(BISON_OUTPUT)
-calc-scanner.o: calc-scanner.cc
+-include $(DEPS)
 
-depend:
-	makedepend -- $(CFLAGS) -- $(SOURCES)
+$(PROG): $(OBJS)
+	$(CXX) $(LDFLAGS) -o $@ $(OBJS)
 
-#calc.o: calc-parser.hh
-#cnode.o: location.hh
-
-# DO NOT DELETE
-
-calc.o: calc-driver.h calc-parser.hh stack.hh cnode.h location.hh position.hh
-#cnode.o: cnode.h calc-driver.h calc-parser.hh stack.hh location.hh position.hh
-cnode.o: cnode.h calc-driver.h
-exprlist.o: cnode.h exprlist.h
-arglist.o: cnode.h arglist.h
-calc-driver.o: calc-driver.h calc-parser.hh stack.hh cnode.h exprlist.h arglist.h location.hh
-calc-driver.o: position.hh
-calc-parser.o: cnode.h exprlist.h arglist.h calc-driver.h calc-parser.hh stack.hh location.hh
-calc-parser.o: position.hh
-calc-scanner.o: calc-driver.h calc-parser.hh stack.hh cnode.h location.hh
-calc-scanner.o: position.hh
+#$(OBJS): %.o: %.c
+$(OUT_DIR)/%.o: %.cpp
+	$(CXX) -c $(CPPFLAGS) $(CXXFLAGS) -MMD -MP -o $@ $<
 
 .PHONY: clean
 clean:
-	@rm -rf *.o calc $(FLEX_OUTPUT) $(BISON_OUTPUT) *.output stack.hh
+	$(RM) -r $(PROG) $(OUT_DIR) $(FLEX_OUTPUT) $(BISON_OUTPUT) *.output
 
-# vim: set noexpandtab:
+# vim: noexpandtab
+

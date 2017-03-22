@@ -67,10 +67,7 @@ class calc_driver;
 %type <node>    fun_stmt
 %type <node>    call_stmt
 %type <node>    print_stmt
-%type <node>    if
 %type <node>    elifs
-%type <node>    elif
-%type <node>    else
 %type <node>    lcmnt
 %type <node>    id
 %type <node>    id_p
@@ -114,20 +111,13 @@ stat    : '\n'                          { $$ = new cnode(); }
 
 assign_stmt : id '=' expr                   { $$ = new cnode(OP_ASSIGN, $1, $3); }
             ;
-/*
-if_stmt     : if elifs else "end"           { $$ = new clist(OP_STATIF, $1, $2, $3); }
-            ;
-*/
 if_stmt     : "if" expr '\n' stats elifs    { $$ = new cnode(OP_IF, $2, new cnode(OP_IFTHEN, $4, $5); }
             ;
 
 elifs       : "elif" expr '\n' stats elifs  { $$ = new cnode(OP_ELIF, $2, new cnode(OP_IFTHEN, $4, $5); }
-            : "else" stats                  { $$ = new cnode(OP_ELSE, $2); }
-            : "end"                         { $$ = null; }
+            | "else" stats                  { $$ = new cnode(OP_ELSE, $2); }
+            | "end"                         { $$ = null; }
             ;
-
-
-
 
 fun_stmt    : "fun" args '\n' stats "end"   { $$ = new cnode(OP_FN, $2, $4); }
             ;
