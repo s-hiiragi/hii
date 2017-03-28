@@ -3,26 +3,25 @@
 
 #include <string>
 #include <map>
-#include "calc-parser.hh"
+#include "parser.hh"
 #include "cnode.h"
 #include "exprlist.h"
 #include "arglist.h"
 #include "cfn.h"
 
-// Forward declarations.
-class calc_driver;
+class hii_driver;
 
-#define YY_DECL                                         \
-    yy::calc_parser::token_type                         \
-    yylex(yy::calc_parser::semantic_type* yylval,       \
-         calc_driver& driver)
+#define YY_DECL                                    \
+    yy::parser::token_type                         \
+    yylex(yy::parser::semantic_type* yylval,       \
+         hii_driver& driver)
 
 YY_DECL;
 
-class calc_driver {
+class hii_driver {
   public:
-    calc_driver();
-    virtual ~calc_driver();
+    hii_driver();
+    virtual ~hii_driver();
 
     std::string &get_filename() { return file_; }
 

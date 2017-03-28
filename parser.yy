@@ -1,17 +1,15 @@
 %skeleton "lalr1.cc"
 
 // wrote by hirok
-%define parser_class_name {calc_parser}
+%define parser_class_name {parser}
 
-// calc-parser.hhを生成するよう指定
+// parser.hhを生成するよう指定
 %defines
 
 %{
 #include <string>
 #include "cnode.h"
-#include "exprlist.h"
-#include "arglist.h"
-class calc_driver;
+class hii_driver;
 
 #ifdef _MSC_VER
 #pragma warning(disable: 4800)
@@ -19,13 +17,11 @@ class calc_driver;
 #endif
 %}
 // The parsing context.
-%parse-param { calc_driver& driver }
-%lex-param   { calc_driver& driver }
+%parse-param { hii_driver& driver }
+%lex-param   { hii_driver& driver }
 
 // wrote by hirok
 %code requires { #include "cnode.h" }
-%code requires { #include "exprlist.h" }
-%code requires { #include "arglist.h" }
 
 // %debug
 %error-verbose
@@ -35,12 +31,10 @@ class calc_driver;
     int                 ival;
     std::string         *sval;
     cnode               *node;
-    exprlist            *exprs;
-    arglist             *args;
 }
 
 %{
-#include "calc-driver.h"
+#include "hii_driver.h"
 %}
 
 %token          TK_EOF          0   "end of file"
@@ -58,8 +52,8 @@ class calc_driver;
 %token          TK_RET              "ret"
 
 %type <node>    expr
-%type <exprs>   exprs
-%type <args>    args
+%type <node>   exprs
+%type <node>    args
 %type <node>    stats
 %type <node>    stat
 %type <node>    assign_stmt
@@ -68,7 +62,6 @@ class calc_driver;
 %type <node>    call_stmt
 %type <node>    print_stmt
 %type <node>    elifs
-%type <node>    lcmnt
 %type <node>    id
 %type <node>    id_p
 
@@ -101,7 +94,7 @@ stats   : stat                          { $$ = new cnode(OP_STATS, $1); }
  */
 
 stat    : '\n'                          { $$ = new cnode(); }
-        | lcmnt '\n'                    { $$ = new cnode(OP_LCOMMENT, $1); }
+        | "lcmnt" '\n'                  { $$ = new cleaf(OP_LCOMMENT, $1); }
         | assign_stmt '\n'              { $$ = $1; }
         | if_stmt '\n'                  { $$ = $1; }
         | fun_stmt '\n'                 { $$ = $1; }
@@ -111,44 +104,32 @@ stat    : '\n'                          { $$ = new cnode(); }
 
 assign_stmt : id '=' expr                   { $$ = new cnode(OP_ASSIGN, $1, $3); }
             ;
-if_stmt     : "if" expr '\n' stats elifs    { $$ = new cnode(OP_IF, $2, new cnode(OP_IFTHEN, $4, $5); }
+
+if_stmt     : "if" expr '\n' stats elifs "end"  { $$ = new cnode(OP_IF, $2, new cnode(OP_IFTHEN, $4, $5)); }
             ;
 
-elifs       : "elif" expr '\n' stats elifs  { $$ = new cnode(OP_ELIF, $2, new cnode(OP_IFTHEN, $4, $5); }
+elifs       : %empty                        { $$ = nullptr; }
+            | "elif" expr '\n' stats elifs  { $$ = new cnode(OP_ELIF, $2, new cnode(OP_IFTHEN, $4, $5)); }
             | "else" stats                  { $$ = new cnode(OP_ELSE, $2); }
-            | "end"                         { $$ = null; }
             ;
 
-fun_stmt    : "fun" args '\n' stats "end"   { $$ = new cnode(OP_FN, $2, $4); }
+fun_stmt    : "fun" id args '\n' stats "end"    { $$ = new cnode(OP_FN, $2, new cnode(OP_NODE, $3, $5)); }
             ;
-print_stmt  : id_p exprs                    { $$ = new cnode(OP_CALL, $1, $2); }
+
+args        : %empty                        { $$ = nullptr; }
+            | id                            { $$ = new cnode(OP_NODE, $1); }
+            | args ',' id                   { cnode * p = new cnode(OP_NODE, $3); $1->set_right(p); $$ = p; }
             ;
+
 call_stmt   : id exprs                      { $$ = new cnode(OP_CALL, $1, $2); }
             ;
 
-if          : "if" expr '\n' stats          { $$ = new cnode(OP_IFTHEN, $2, $4); }
+print_stmt  : id_p exprs                    { $$ = new cnode(OP_CALL, $1, $2); }
             ;
 
-elifs       : %empty                        { $$ = new clist(OP_ELIFS); }
-            | elif                          { $$ = new clist(OP_ELIFS, $1); }
-            | elifs elif                    { $$ = $1->concat($2); }
-            ;
-
-elif        : "elif" expr '\n' stats        { $$ = new cnode(OP_ELIF, $2, $4); }
-            ;
-
-else        : %empty                        { $$ = new cnode(); }
-            | "else" '\n' stats             { $$ = new cnode(OP_ELSE, $3); }
-            ;
-
-args        : %empty                        { $$ = new clist(OP_ARGS); }
-            | id                            { $$ = new clist(OP_ARGS, $1); }
-            | args ',' id                   { $$ = &($1->concat(new cnode(OP_ID, $3))); }
-            ;
-
-exprs       : %empty                        { $$ = new clist(OP_EXPRS); }
-            | expr                          { $$ = new clist(OP_EXPRS, $1); }
-            | exprs ',' expr                { $$ = &($1->concat($3)); }
+exprs       : %empty                        { $$ = new cnode(OP_NODE); }
+            | expr                          { $$ = new cnode(OP_NODE, $1); }
+            | exprs ',' expr                { cnode * p = new cnode(OP_NODE, $3); $1->set_right(p); $$ = p; }
             ;
 
 expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); }
@@ -158,26 +139,24 @@ expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); 
             | '-' expr %prec NEG            { $$ = new cnode(OP_NEG, $2); }
             | '(' expr ')'                  { $$ = $2; }
             | id                            { $$ = $1; }
-            | "int"                         { $$ = new cnode(OP_INT, $1); }
+            | "int"                         { $$ = new cleaf(OP_INT, $1); }
             ;
 
 /* 末端 */
-lcmnt   : "lcmnt"                       { $$ = new cnode(OP_LCOMMENT, $1); }
+id      : "id"                          { $$ = new cleaf(OP_ID, $1); }
         ;
-id      : "id"                          { $$ = new cnode(OP_ID, $1); }
-        ;
-id_p    : "p"                           { $$ = new cnode(OP_ID, new std::string("p")); }
+id_p    : "p"                           { $$ = new cleaf(OP_ID, new std::string("p")); }
         ;
 
 %%
 // wrote by hirok
 /*
-void yy::calc_parser::error(const yy::calc_parser::location_type&, const std::string& m)
+void yy::parser::error(const yy::parser::location_type&, const std::string& m)
 {
 
 }
 */
-void yy::calc_parser::error(const std::string& m)
+void yy::parser::error(const std::string& m)
 {
     driver.error(m);
 }

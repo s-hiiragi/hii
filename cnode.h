@@ -13,14 +13,12 @@ typedef enum node_type_
     // 複文
     OP_STATS,
 
-    // コメント
-    OP_LCOMMENT,
-
     // 文
     OP_ASSIGN,
     OP_PRINT,
     OP_LIST,
     OP_CALL,
+    OP_IF,
     OP_IFTHEN,
     OP_ELIF,
     OP_ELSE,
@@ -38,6 +36,9 @@ typedef enum node_type_
     OP_TIMES,
     OP_DIVIDE,
 
+    // コメント
+    OP_LCOMMENT,
+
     // リテラル
     OP_ID,
     OP_INT,
@@ -46,7 +47,7 @@ typedef enum node_type_
 
 // ノード
 
-class calc_driver;
+class hii_driver;
 class exprlist;
 class arglist;
 
@@ -83,7 +84,7 @@ class cnode {
         delete right_;
     }
 
-    int expr(calc_driver *driver) const;
+    int expr(hii_driver *driver) const;
 
     // これは何?
     const char *name() const;

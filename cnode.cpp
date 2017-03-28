@@ -1,7 +1,6 @@
 #include <iostream>
 #include "cnode.h"
-#include "calc-driver.h"
-//#include "calc-parser.hh"
+#include "hii_driver.h"
 
 using namespace std;
 
@@ -33,7 +32,7 @@ void cnode::print(const cnode *node, unsigned int nestlev)
     cnode::print(node->right(), nestlev+1);
 }
 
-int cnode::expr(calc_driver *driver) const
+int cnode::expr(hii_driver *driver) const
 {
     switch (op_) {
       case OP_PLUS:

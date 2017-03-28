@@ -3,8 +3,8 @@
 #include <cerrno>
 #include <climits>
 #include <string>
-#include "calc-driver.h"
-#include "calc-parser.hh"
+#include "hii_driver.h"
+#include "parser.hh"
 
 #ifdef _MSC_VER
 #pragma warning(disable:4018)
@@ -34,7 +34,7 @@ lcmnt #[^\n]*
 
 %%
 %{
-    typedef yy::calc_parser::token token;
+    typedef yy::parser::token token;
 
     std::string string_buffer;
 %}
@@ -47,7 +47,7 @@ lcmnt #[^\n]*
 "fun"       return token::TK_FN;
 "ret"       return token::TK_RET;
 
-[-+*/=()\n,]    return yy::calc_parser::token_type(yytext[0]);
+[-+*/=()\n,]    return yy::parser::token_type(yytext[0]);
 
 {blank}+        ;
 {int}           {
@@ -74,13 +74,13 @@ lcmnt #[^\n]*
 
 %%
 
-void calc_driver::scan_begin()
+void hii_driver::scan_begin()
 {
     if ((yyin = fopen(file_.c_str(), "r")) == 0)
         error(file_ + " がオープンできません。");
 }
 
-void calc_driver::scan_end()
+void hii_driver::scan_end()
 {
     fclose(yyin);
     yylex_destroy();
