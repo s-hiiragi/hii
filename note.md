@@ -21,6 +21,26 @@ Makefile改善
 
 
 
+driver.set_ast(clist)
+
+stats :: clist
+stat  :: cnode
+
+nodeはツリー
+listはリスト
+
+clist(OP_ANY)  // statlist
+clist(OP_NODE) // exprlist
+clist(OP_ARG)  // argslist
+
+cleaf()
+cleaf(OP_LCOMMENT, str)
+
+cnode(OP_ASSIGN, id, expr)
+
+
+
+
 ・fnをどう実装するか？
   ・stateをノードとして扱い、
     構文解析時にfn/if/loopをノードにしてしまう
