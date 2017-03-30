@@ -1,9 +1,11 @@
 #include <iostream>
 #include "cnode.h"
+#include "cleaf.h"
 #include "hii_driver.h"
 
 using namespace std;
 
+/*
 void cnode::print(const cnode *node, unsigned int nestlev)
 {
     if (node == nullptr) return;
@@ -31,6 +33,7 @@ void cnode::print(const cnode *node, unsigned int nestlev)
     cnode::print(node->left(), nestlev+1);
     cnode::print(node->right(), nestlev+1);
 }
+*/
 
 int cnode::expr(hii_driver *driver) const
 {
@@ -61,6 +64,7 @@ int cnode::expr(hii_driver *driver) const
     }
 }
 
+/*
 const char * cnode::name() const
 {
     switch (op_)
@@ -87,4 +91,5 @@ const char * cnode::name() const
     default:        return "unknown";   break;
     }
 }
+*/
 

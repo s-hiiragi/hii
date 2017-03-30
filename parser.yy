@@ -9,6 +9,8 @@
 %{
 #include <string>
 #include "cnode.h"
+#include "cleaf.h"
+#include "clist.h"
 class hii_driver;
 
 #ifdef _MSC_VER
@@ -22,15 +24,17 @@ class hii_driver;
 
 // wrote by hirok
 %code requires { #include "cnode.h" }
+%code requires { #include "clist.h" }
 
 // %debug
 %error-verbose
 // Symbols.
 %union
 {
+    clist               *list;
+    cnode               *node;
     int                 ival;
     std::string         *sval;
-    cnode               *node;
 }
 
 %{
@@ -51,11 +55,11 @@ class hii_driver;
 %token          TK_FN               "fun"
 %token          TK_RET              "ret"
 
-%type <node>    expr
-%type <node>   exprs
-%type <node>    args
-%type <node>    stats
+%type <list>    stats
 %type <node>    stat
+%type <node>    expr
+%type <list>    exprs
+%type <list>    args
 %type <node>    assign_stmt
 %type <node>    if_stmt
 %type <node>    fun_stmt
@@ -67,9 +71,9 @@ class hii_driver;
 
 %destructor { delete $$; } "id"
 %destructor { delete $$; } "lcmnt"
-%destructor { delete $$; } expr
-%destructor { delete $$; } exprs
-%destructor { delete $$; } args
+%destructor { delete $$; } stats
+%destructor { delete $$; } stat
+/* TODO たのトークンも追加する */
 
 %left '+' '-';
 %left '*' '/';
@@ -80,8 +84,8 @@ class hii_driver;
 unit    : stats                         { driver.set_ast($1); }
         ;
 
-stats   : stat                          { $$ = new cnode(OP_STATS, $1); }
-        | stats stat                    { cnode * p = new cnode(OP_STATS, $2); $1->set_right(p); $$ = p; }
+stats   : stat                          { $$ = new clist(OP_STATS, $1); }
+        | stats stat                    { $1->add($2); $$ = $1; }
         ;
 
 /* 以下のようなツリーを構築したいが、
@@ -117,8 +121,8 @@ fun_stmt    : "fun" id args '\n' stats "end"    { $$ = new cnode(OP_FN, $2, new 
             ;
 
 args        : %empty                        { $$ = nullptr; }
-            | id                            { $$ = new cnode(OP_NODE, $1); }
-            | args ',' id                   { cnode * p = new cnode(OP_NODE, $3); $1->set_right(p); $$ = p; }
+            | id                            { $$ = new clist(OP_ARGS, $1); }
+            | args ',' id                   { $1->add($3); $$ = $1; }
             ;
 
 call_stmt   : id exprs                      { $$ = new cnode(OP_CALL, $1, $2); }
@@ -127,9 +131,9 @@ call_stmt   : id exprs                      { $$ = new cnode(OP_CALL, $1, $2); }
 print_stmt  : id_p exprs                    { $$ = new cnode(OP_CALL, $1, $2); }
             ;
 
-exprs       : %empty                        { $$ = new cnode(OP_NODE); }
-            | expr                          { $$ = new cnode(OP_NODE, $1); }
-            | exprs ',' expr                { cnode * p = new cnode(OP_NODE, $3); $1->set_right(p); $$ = p; }
+exprs       : %empty                        { $$ = nullptr; }
+            | expr                          { $$ = new clist(OP_EXPRS, $1); }
+            | exprs ',' expr                { $1->add($3); $$ = $1; }
             ;
 
 expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); }

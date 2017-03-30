@@ -27,6 +27,9 @@ typedef enum node_type_
     OP_FN,  // 右のコメントは何？// 関数内での関数定義は許さないので種別は不要
     OP_RET,
 
+    OP_EXPRS,
+    OP_ARGS,
+
     // 単項演算子
     OP_NEG,
     
@@ -61,6 +64,7 @@ class cnode {
     // @param[in] node
     // @param[in] callback void (*callback)(const cnode *cnode, unsigned int nestlev)
     // @param[in] nestlev
+    /*
     template <class T>
     static void list(const cnode *node, const T &callback, unsigned int nestlev=0)
     {
@@ -69,11 +73,10 @@ class cnode {
         list(node->left_, callback, nestlev+1);
         list(node->right_, callback, nestlev+1);
     }
+    */
+    //static void print(const cnode *node, unsigned int nestlev=0);
 
-    static void print(const cnode *node, unsigned int nestlev=0);
-
-    cnode()
-        : op_(OP_EMPTY), left_(nullptr), right_(nullptr) {}
+    cnode() {}
 
     cnode(int op, cnode *left=nullptr, cnode *right=nullptr)
         : op_(op), left_(left), right_(right) {}
@@ -86,20 +89,17 @@ class cnode {
 
     int expr(hii_driver *driver) const;
 
-    // これは何?
-    const char *name() const;
-
     int op() const { return op_; }
     const cnode *left() const { return left_; }
     const cnode *right() const { return right_; }
     cnode *left() { return left_; }
     cnode *right() { return right_; }
 
-    void set_right(cnode *right) { delete right_; right_ = right; }
+    //void set_right(cnode *right) { delete right_; right_ = right; }
 
-  protected:
-    void set_op(int op) { op_ = op; }
+  //protected:
     void set_left(cnode *left) { delete left_; left_ = left; }
+    void set_right(cnode *right) { delete right_; right_ = right; }
 
   private:
     int op_ = OP_EMPTY;

@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 
     for (++argv; argv[0]; ++argv) {
         hii_driver driver;
-        driver.calc(*argv);
+        driver.exec(*argv);
     }
     return 0;
 }
