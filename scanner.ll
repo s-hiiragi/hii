@@ -39,12 +39,11 @@ lcmnt #[^\n]*
     std::string string_buffer;
 %}
 
-"p"         return token::TK_PRINT;
 "if"        return token::TK_IF;
+"elif"      return token::TK_ELIF;
 "else"      return token::TK_ELSE;
-"elif"      return token::TK_ELSE;
 "end"       return token::TK_END;
-"fun"       return token::TK_FN;
+"fun"       return token::TK_FUN;
 "ret"       return token::TK_RET;
 
 [-+*/=()\n,]    return yy::parser::token_type(yytext[0]);

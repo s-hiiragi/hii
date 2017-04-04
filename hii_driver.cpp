@@ -11,6 +11,8 @@ using namespace std;
 void hii_driver::set_ast(cnode *ast)
 {
     std::cout << "set_ast" << std::endl;
+
+    cnode::print(ast);
 }
 
 bool hii_driver::exec(const string &f)

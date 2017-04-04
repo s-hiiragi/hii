@@ -4,14 +4,14 @@ class cleaf : public cnode {
 
 public:
     cleaf()
-        : cnode(OP_EMPTY) {}
+        : cnode(OP_EMPTY) { group_ = NG_LEAF; }
 
     // opはID, LCMNTの場合があるため必須
     cleaf(int op, std::string *sval)
-        : cnode(op), sval_(sval) {}
+        : cnode(op), sval_(sval) { group_ = NG_LEAF; }
    
     cleaf(int op, int ival)
-        : cnode(op), ival_(ival) {}
+        : cnode(op), ival_(ival) { group_ = NG_LEAF; }
 
     ~cleaf() {
         delete sval_;

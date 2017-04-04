@@ -11,9 +11,6 @@
  * - 仮引数のリスト
  * - 実引数のリスト
  * 
- * NOTE:
- * - 簡単のために、リストの子ノードはリストではなくOP_NODEとしている
- * 
  * ノード構成の例
  * clist * list = new clist(OP_STATS, node1);
  * list->add(node2);
@@ -21,9 +18,9 @@
  * 
  * clist op=OP_STATS
  *  |-- node1
- *  |-- cnode op=NODE
+ *  |-- cnode op=OP_LISTITEM
  *       |-- node2
- *       |-- cnode op=NODE
+ *       |-- cnode op=OP_LISTITEM
  *            |-- node3
  *            |-- nullptr
  * 
@@ -31,8 +28,11 @@
 class clist : public cnode
 {
   public:
+    clist(int op)
+        : cnode(op, nullptr, nullptr)  { group_ = NG_LIST; }
+
     clist(int op, cnode * node)
-        : cnode(op, node, nullptr) {}
+        : cnode(op, node, nullptr) { group_ = NG_LIST; }
 
     int add(cnode * node) {
 
@@ -54,7 +54,7 @@ class clist : public cnode
             p->set_left(node);
 
         } else if (p->right() == nullptr) {
-            cnode * n = new cnode(OP_NODE, node, nullptr);
+            cnode * n = new cnode(OP_LISTITEM, node, nullptr);
             p->set_right(n);
         }
 

@@ -52,22 +52,22 @@ class hii_driver;
 %token          TK_ELIF             "elif"
 %token          TK_ELSE             "else"
 %token          TK_END              "end"
-%token          TK_FN               "fun"
+%token          TK_FUN              "fun"
 %token          TK_RET              "ret"
 
 %type <list>    stats
 %type <node>    stat
+%type <list>    comment
+%type <node>    assign_stmt
+%type <node>    if_stmt
+%type <node>    elifs
+%type <node>    fun_stmt
+%type <node>    call_stmt
 %type <node>    expr
 %type <list>    exprs
 %type <list>    args
-%type <node>    assign_stmt
-%type <node>    if_stmt
-%type <node>    fun_stmt
-%type <node>    call_stmt
-%type <node>    print_stmt
-%type <node>    elifs
 %type <node>    id
-%type <node>    id_p
+%type <node>    lcmnt
 
 %destructor { delete $$; } "id"
 %destructor { delete $$; } "lcmnt"
@@ -84,43 +84,38 @@ class hii_driver;
 unit    : stats                         { driver.set_ast($1); }
         ;
 
-stats   : stat                          { $$ = new clist(OP_STATS, $1); }
+stats   : '\n'                          { $$ = new clist(OP_STATS); }
+        | stat                          { $$ = new clist(OP_STATS, $1); }
+        | stats '\n'                    { $$ = $1; }
         | stats stat                    { $1->add($2); $$ = $1; }
         ;
 
-/* 以下のようなツリーを構築したいが、
- * 構文ルール上、構築できるツリーの形が決まってしまう？
- * STATS
- *  |-- stat
- *  |-- STATS
- *       |-- stat
- *       |-- STATS
- */
-
-stat    : '\n'                          { $$ = new cnode(); }
-        | "lcmnt" '\n'                  { $$ = new cleaf(OP_LCOMMENT, $1); }
+stat    : comment                       { $$ = $1; }
         | assign_stmt '\n'              { $$ = $1; }
         | if_stmt '\n'                  { $$ = $1; }
         | fun_stmt '\n'                 { $$ = $1; }
         | call_stmt '\n'                { $$ = $1; }
-        | print_stmt '\n'               { $$ = $1; }
         ;
+
+comment     : lcmnt '\n'                { $$ = new clist(OP_MCOMMENT, $1); }
+            | comment lcmnt '\n'        { $1->add($2); $$ = $1; }
+            ;
 
 assign_stmt : id '=' expr                   { $$ = new cnode(OP_ASSIGN, $1, $3); }
             ;
 
-if_stmt     : "if" expr '\n' stats elifs "end"  { $$ = new cnode(OP_IF, $2, new cnode(OP_IFTHEN, $4, $5)); }
+if_stmt     : "if" expr '\n' stats elifs "end"  { $$ = new cnode(OP_IF, $2, new cnode(OP_NODE, $4, $5)); }
             ;
 
 elifs       : %empty                        { $$ = nullptr; }
-            | "elif" expr '\n' stats elifs  { $$ = new cnode(OP_ELIF, $2, new cnode(OP_IFTHEN, $4, $5)); }
-            | "else" stats                  { $$ = new cnode(OP_ELSE, $2); }
+            | "elif" expr '\n' stats elifs  { $$ = new cnode(OP_ELIF, $2, new cnode(OP_NODE, $4, $5)); }
+            | "else" '\n' stats             { $$ = new cnode(OP_ELSE, $3); }
             ;
 
-fun_stmt    : "fun" id args '\n' stats "end"    { $$ = new cnode(OP_FN, $2, new cnode(OP_NODE, $3, $5)); }
+fun_stmt    : "fun" id args '\n' stats "end"    { $$ = new cnode(OP_FUN, $2, new cnode(OP_NODE, $3, $5)); }
             ;
 
-args        : %empty                        { $$ = nullptr; }
+args        : %empty                        { $$ = new clist(OP_ARGS); }
             | id                            { $$ = new clist(OP_ARGS, $1); }
             | args ',' id                   { $1->add($3); $$ = $1; }
             ;
@@ -128,10 +123,7 @@ args        : %empty                        { $$ = nullptr; }
 call_stmt   : id exprs                      { $$ = new cnode(OP_CALL, $1, $2); }
             ;
 
-print_stmt  : id_p exprs                    { $$ = new cnode(OP_CALL, $1, $2); }
-            ;
-
-exprs       : %empty                        { $$ = nullptr; }
+exprs       : %empty                        { $$ = new clist(OP_EXPRS); }
             | expr                          { $$ = new clist(OP_EXPRS, $1); }
             | exprs ',' expr                { $1->add($3); $$ = $1; }
             ;
@@ -149,7 +141,7 @@ expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); 
 /* 末端 */
 id      : "id"                          { $$ = new cleaf(OP_ID, $1); }
         ;
-id_p    : "p"                           { $$ = new cleaf(OP_ID, new std::string("p")); }
+lcmnt   : "lcmnt"                       { $$ = new cleaf(OP_LCOMMENT, $1); }
         ;
 
 %%

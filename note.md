@@ -1,9 +1,23 @@
 # 開発メモ
 
+[ ] 文字列リテラルを追加する
+
+[ ] intをnumに改名する
+
+[x] リストを簡潔に表示したい
+
+現状のclistではリストがネストしている場合に
+ネストしていることがわからない
+-> リストのトップノードだけOP_LISTにする ?
+
+
+
+
+
 TODO
 Makefile改善
-- [ ] 生成ファイルをobjディレクトリに移動するようMakefileを変更する
-- [ ] 依存関係を自動生成する
+- [x] 生成ファイルをobjディレクトリに移動するようMakefileを変更する
+- [x] 依存関係を自動生成する
 
 方針
 - cnodeだけでAST構築する (2017/03/08)
@@ -12,31 +26,10 @@ Makefile改善
 - cnode        ... ノード
 - cleaf        ... 
 - clist        ... 
-- exprlist     ... 必要？
-- argslist     ... 必要？
 - cfn          ... 何者？
-- calc_driver  ... 
 
 
 
-
-
-driver.set_ast(clist)
-
-stats :: clist
-stat  :: cnode
-
-nodeはツリー
-listはリスト
-
-clist(OP_ANY)  // statlist
-clist(OP_NODE) // exprlist
-clist(OP_ARG)  // argslist
-
-cleaf()
-cleaf(OP_LCOMMENT, str)
-
-cnode(OP_ASSIGN, id, expr)
 
 
 
