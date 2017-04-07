@@ -52,6 +52,7 @@ typedef enum node_type_
     // リテラル
     OP_ID,
     OP_INT,
+    OP_STR,
     OP_EMPTY // 値なしリーフ
 } node_type;
 

@@ -29,14 +29,24 @@ class hii_driver {
     // 変数の値を取得
     int value(const std::string & name)
     {
-        // 未定義チェックを行う
+        // TODO 未定義チェックを行う
         return values_[name];
     }
     
     // 構文にマッチした時のアクション
 
     // Error handling.
-    void error(const std::string& m, const std::string& text = "");
+    void error(char const * message)
+    {
+        std::printf("%s", message);
+    }
+
+    //void error(const std::string& m, const std::string& text = "");
+    template<class... Args>
+    void error(char const * format, Args const &... args)
+    {
+        std::printf(format, args...);
+    }
 
   private:
     void scan_begin();

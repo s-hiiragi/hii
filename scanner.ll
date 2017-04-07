@@ -3,6 +3,7 @@
 #include <cerrno>
 #include <climits>
 #include <string>
+#include <cstring>
 #include "hii_driver.h"
 #include "parser.hh"
 
@@ -29,6 +30,7 @@
 
 id    [a-zA-Z_][a-zA-Z_0-9]*
 int   [1-9][0-9]*
+str   \"([^\\"]|\\.)*\"
 blank [ \t]
 lcmnt #[^\n]*
 
@@ -44,16 +46,19 @@ lcmnt #[^\n]*
 "else"      return token::TK_ELSE;
 "end"       return token::TK_END;
 "fun"       return token::TK_FUN;
-"ret"       return token::TK_RET;
 
 [-+*/=()\n,]    return yy::parser::token_type(yytext[0]);
 
 {blank}+        ;
+{lcmnt}         {
+                    yylval->sval = new std::string(yytext);
+                    return token::TK_LCMNT;
+                }
 {int}           {
                     errno = 0;
                     long n = strtol(yytext, NULL, 10);
                     if (n < LONG_MIN || n > LONG_MAX || errno == ERANGE)
-                        driver.error("整数が範囲外です。");
+                        driver.error("整数が範囲外です。: %s", yytext);
                     yylval->ival = n;
                     return token::TK_INT;
                 }
@@ -61,22 +66,23 @@ lcmnt #[^\n]*
                     yylval->ival = 0;
                     return token::TK_INT;
                 }
+{str}           {
+                    // TODO ""を除去する
+                    yylval->sval = new std::string(yytext, 1, std::strlen(yytext)-2);
+                    return token::TK_STR;
+                }
 {id}            {
                     yylval->sval = new std::string(yytext);
                     return token::TK_ID;
                 }
-{lcmnt}         {
-                    yylval->sval = new std::string(yytext);
-                    return token::TK_LCMNT;
-                }
-.               driver.error("この文字を識別子で使用することはできません。", yytext);
+.               driver.error("不正な文字です。: %s", yytext);
 
 %%
 
 void hii_driver::scan_begin()
 {
     if ((yyin = fopen(file_.c_str(), "r")) == 0)
-        error(file_ + " がオープンできません。");
+        this->error("%s がオープンできません。", file_);
 }
 
 void hii_driver::scan_end()

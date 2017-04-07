@@ -38,6 +38,9 @@ void cnode::print(const cnode *node, unsigned int nestlev)
     case OP_INT:
         cout << " " << dynamic_cast<const cleaf *>(node)->ival();
         break;
+    case OP_STR:
+        cout << " \"" << dynamic_cast<const cleaf *>(node)->sval() << "\"";
+        break;
     }
     cout << endl;
 
@@ -104,6 +107,7 @@ const char * cnode::name() const
     case OP_LCOMMENT: return "LCOMMENT"; break;
     case OP_ID:       return "ID";       break;
     case OP_INT:      return "INT";      break;
+    case OP_STR:      return "STR";      break;
     case OP_EMPTY:    return "EMPTY";    break;
     default:          return "unknown";  break;
     }

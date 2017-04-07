@@ -29,11 +29,13 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    for (++argv; argv[0]; ++argv) {
-        std::string fname = *argv;
+    for (int i = 1; i < argc; i++) {
+        std::string fname = argv[i];
+
         if (!has_suffix(fname, ".hi")) {
             fname += ".hi";
         }
+
         hii_driver driver;
         driver.exec(fname);
     }

@@ -46,6 +46,7 @@ class hii_driver;
 /* literals */
 %token <sval>   TK_ID               "id"
 %token <ival>   TK_INT              "int"
+%token <sval>   TK_STR              "str"
 /* keywords */
 %token          TK_PRINT            "p"
 %token          TK_IF               "if"
@@ -136,6 +137,7 @@ expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); 
             | '(' expr ')'                  { $$ = $2; }
             | id                            { $$ = $1; }
             | "int"                         { $$ = new cleaf(OP_INT, $1); }
+            | "str"                         { $$ = new cleaf(OP_STR, $1); }
             ;
 
 /* 末端 */
@@ -149,11 +151,12 @@ lcmnt   : "lcmnt"                       { $$ = new cleaf(OP_LCOMMENT, $1); }
 /*
 void yy::parser::error(const yy::parser::location_type&, const std::string& m)
 {
-
+    driver.error(m);
 }
 */
-void yy::parser::error(const std::string& m)
+
+void yy::parser::error(const std::string & m)
 {
-    driver.error(m);
+    driver.error(m.c_str());
 }
 
