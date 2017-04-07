@@ -1,10 +1,12 @@
+# output files
 *.o
 *.output
 *.hh
 *.cc
 *.swp
 hii
-
 /out/
+
 /old/
+_*
 
