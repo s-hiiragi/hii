@@ -1,8 +1,56 @@
 # 開発メモ
 
+[ ] cnodeをcleafにキャストしてvalueにアクセスするのを簡単にしたい
+
 [ ] 組込関数コールを実行するメソッドを実装する
 
 [ ] 変数定義する実行メソッドを実装する
+  スコープを扱う必要がある
+  - グローバルスコープ
+  - ブロックスコープ (fun, if)
+
+  変数登録時
+  - 一番近いスコープに登録する
+  変数参照時
+  - 一番近いスコープの変数を参照する
+
+[ ] スコープを生成する
+
+
+[ ] OP_FUNの子ノードを処理する
+  -> ASTを(ASTよりも実行しやすい)中間言語に変換する必要がある
+
+[ ] 中間言語のデータ構造を考える
+  program:
+    - stats: cstats
+  cstats:
+    - stats: vector<cstat>
+  cstat:
+    ccomment:
+      - value: string
+    cassign:
+      - name: string
+      - expr: cexpr
+    cif:
+      - cond: 
+    cfun:
+      - name: string
+      - args: 
+      - stats: cstats
+    ccall:
+      - exprs: vector<cexpr>
+  cexpr:
+    - 
+
+[-] (cnode::listを拡張して)スコープを抜けるときcallbackを呼ぶ
+  -> OP_FUNで子ノードに到達したときにスコープを作成し、子ノードの処理後、
+     親ノードに戻ったときにスコープを破棄しようと考えた
+  -> よく考えたらOP_FUNの子ノードを別のcallbackで処理することがおかしい
+  -> OP_FUNに到達したときにcallback内で子ノードを処理する
+
+[x] ASTを走査して変数定義・関数定義時に名前を表示する
+  どうやって走査するか？
+  -> 深さ優先探索(cnode::list)を使う
 
 [x] 文字列リテラルを追加する
 

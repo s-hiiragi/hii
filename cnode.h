@@ -24,7 +24,7 @@ typedef enum node_type_
     // 文
     OP_ASSIGN,
     OP_PRINT,
-    OP_LIST,
+    OP_LIST,  // 未使用っぽい
     OP_CALL,
     OP_IF,
     OP_ELIF,
@@ -68,10 +68,13 @@ class hii_driver;
 
 class cnode {
   public:
-    // 左リーフ優先で深さ優先探索
-    // @param[in] node
-    // @param[in] callback void (*callback)(const cnode *cnode, unsigned int nestlev)
-    // @param[in] nestlev
+    /**
+     * 左リーフ優先で深さ優先探索
+     * 
+     * @param[in] node
+     * @param[in] callback void (*callback)(const cnode *cnode, unsigned int nestlev)
+     * @param[in] nestlev
+     */
     template <class T>
     static void list(const cnode *node, const T &callback, unsigned int nestlev=0)
     {
@@ -80,6 +83,7 @@ class cnode {
         list(node->left_, callback, nestlev+1);
         list(node->right_, callback, nestlev+1);
     }
+
     static void print(const cnode *node, unsigned int nestlev=0);
 
     cnode() {}

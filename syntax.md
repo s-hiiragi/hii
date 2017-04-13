@@ -1,4 +1,4 @@
-# hilang syntax
+# hiilang syntax
 
 
 ## プログラム

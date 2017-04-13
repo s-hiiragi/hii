@@ -20,8 +20,6 @@ class hii_driver {
     hii_driver() {}
     virtual ~hii_driver() {}
 
-    std::string &get_filename() { return file_; }
-
     void set_ast(cnode *ast);
     
     bool exec(const std::string &f);
@@ -30,7 +28,9 @@ class hii_driver {
     int value(const std::string & name)
     {
         // TODO 未定義チェックを行う
-        return values_[name];
+        // TODO 実装する
+        //return nullptr;
+        return 0;
     }
     
     // 構文にマッチした時のアクション
@@ -54,7 +54,9 @@ class hii_driver {
 
   private:
     std::string file_;
-    std::map<std::string, int> values_;  // 変数テーブル
+    //std::vector<cscope> scopes_;
+    //std::vector<cscope> current_scopes_; 
+    std::map<std::string, cnode *> identifiers_;
 };
 
 #endif
