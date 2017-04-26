@@ -1,5 +1,12 @@
 # 開発メモ
 
+[ ] cnode, clist, cleafにto\_string()を実装したい
+    - AST上でノードの表示に使う
+
+[ ] expr式のevalを実装する
+[x] if文のevalを実装する
+
+
 [ ] cnodeをcleafにキャストしてvalueにアクセスするのを簡単にしたい
 
 [ ] 組込関数コールを実行するメソッドを実装する
@@ -20,27 +27,122 @@
 [ ] OP_FUNの子ノードを処理する
   -> ASTを(ASTよりも実行しやすい)中間言語に変換する必要がある
 
-[ ] 中間言語のデータ構造を考える
+[-] (vim)関数一覧を表示してジャンプしたい
+
+[ ] eval()の実装状況
+  - STATS      : ok (値なし; 最後の文の値で上書きされる?)
+  - ASSIGN     : ok (値なし)
+  - FUN        : ok (値なし)
+  - IF         : ok (最後に実行した文の値?)
+  - ELIF       : ok (最後に実行した文の値?)
+  - ELSE       : ok (最後に実行した文の値?)
+  - CALL       : 
+  - 単項演算子 : ok
+  - 二項演算子 : ok
+  - リテラル   : ok
+  - ID         : 
+  - コメント   : ok (値なし)
+
+[x] スコープの生成タミングを決める
+  - プログラム実行時, 関数定義時(fun)
+  - 簡単のため条件分岐(if)ではスコープを生成しない
+
+[ ] eval()の中で探索とres返却を行ってるのは何かおかしい気がする
+
+[ ] 構文の記載順序を統一する
+  - 静的->動的の並び
+  - assign, fun, if, call
+
+[ ] eval: 探索から実行処理を分ける
+  - assign : 何もしない
+  - if     : stats, elifsを探索 ... 完全には分けられない...
+  - fun    : 何もしない
+  - call   : exprsを探索
+
+[ ] eval()の戻り値をcleafからcvalueに変える
+[ ] 値型のcvalueクラスを定義する
+[ ] eval()に失敗したら例外を投げる
+  - 評価結果を戻り値で返したい (戻り値同士の計算が楽)
+  - 失敗するケースとは?
+    - 変数未定義、未初期化変数の参照、演算不可能な型同士の演算
+    - 滅多に起きないなら、例外の方が扱いやすい
+
+[ ] まずインタプリタを作る
+  ノードに到達した時の処理
+  stats:
+    何もしない (子ノードの処理に任せる)
+  stat:
+    comment:
+      何もしない
+    assign:
+      式を評価して値を得る
+      変数を現在のスコープに追加
+    if:
+      条件式を評価して値を得る
+      値が真の場合:
+        statsを実行 (list(stats))
+      値が偽の場合:
+        elifsを実行 (list(elifs))
+    fun:
+      関数を登録
+      # 注:インタプリタなので、関数コールしないと構文チェックされない
+    call:
+      各式を評価
+      関数を実行
+  elif:
+  else:
+    スコープを追加
+    statsを実行
+    スコープを削除
+  
+  必要な関数
+    - 変数/関数の定義済みチェック(name) -> bool
+    - 変数を登録(name, value)
+    - 関数を登録(name, node)
+    - 式を評価(node) -> value
+    - 関数実行(name, values)
+  
+  スコープについて
+    - スコープはいつdeleteするか？
+    - スコープに追加したノードはいつ破棄するか？
+
+[-] 中間言語のデータ構造を考える
+  -> まだバイトコード生成を考える段階ではないため保留
   program:
-    - stats: cstats
+    - @stats: cstats
+    - run: stats->run();
   cstats:
-    - stats: vector<cstat>
+    - @stats: vector<cstat>
+    - run: for (auto && stat : stats) stat->run();
   cstat:
     ccomment:
-      - value: string
+      - @value: string
+      - run: ;
     cassign:
-      - name: string
-      - expr: cexpr
+      - @name: string
+      - @expr: cexpr
+      - run: cexprの評価結果を変数にセットする
     cif:
-      - cond: 
+      - @cond: cexpr
+      - @then: stats
+      - @elifs: vector<cif>
+      - @else: stats
+      - run: cexprを評価, 真ならthenを実行, 偽ならelifsを順に実行, 全て偽ならelseを実行
     cfun:
-      - name: string
-      - args: 
-      - stats: cstats
+      - @name: string
+      - @args: 
+      - @stats: cstats
+      - run: 関数を定義
     ccall:
-      - exprs: vector<cexpr>
+      - @name: string
+      - @exprs: vector<cexpr>
+      - run: 各cexprを評価, 評価結果を引数にして関数をコール
   cexpr:
-    - 
+    - @expr: cnode
+    - eval: 
+
+[x] list()に子ノードを探索するかどうかcallbackから通知する仕組みを入れる
+  -> goの戻り値でboolを返すのが良さそう
 
 [-] (cnode::listを拡張して)スコープを抜けるときcallbackを呼ぶ
   -> OP_FUNで子ノードに到達したときにスコープを作成し、子ノードの処理後、

@@ -11,27 +11,30 @@ typedef enum node_type_
     OP_NODE,
 
     // リストの要素
-    OP_LISTITEM,
+    OP_LISTITEM,  // clistで使ってるっぽい
 
     // TODO OP_LIST を追加した方がいいような。。。
     // メリット
     // - リストかどうか判定しやすい
     // - 新しいリストを追加するたびに種別を増やさなくて良い
+    // 
+    // ==> リストの種別をどう判定するかの問題がある
+    // - トップレベルのノード種別をOP_LISTとして別途種別を持たせるか、
+    // - トップレベルのノード種別をOP_<anytype>として別途リストフラグを持たせるか
 
     // 複文
     OP_STATS,
 
     // 文
     OP_ASSIGN,
-    OP_PRINT,
     OP_LIST,  // 未使用っぽい
     OP_CALL,
     OP_IF,
     OP_ELIF,
     OP_ELSE,
-    OP_END,
-    OP_FUN,  // 右のコメントは何？// 関数内での関数定義は許さないので種別は不要
-    OP_RET,
+    OP_END,  // 未使用
+    OP_FUN,
+    OP_RET,  // 未使用 (後々ret文を定義する?)
 
     OP_EXPRS,
     OP_ARGS,
@@ -49,10 +52,13 @@ typedef enum node_type_
     OP_MCOMMENT,  // multi line comment
     OP_LCOMMENT, // (single) line comment
 
-    // リテラル
+    // 識別子
     OP_ID,
+
+    // リテラル
     OP_INT,
     OP_STR,
+
     OP_EMPTY // 値なしリーフ
 } node_type;
 
@@ -72,16 +78,18 @@ class cnode {
      * 左リーフ優先で深さ優先探索
      * 
      * @param[in] node
-     * @param[in] callback void (*callback)(const cnode *cnode, unsigned int nestlev)
+     * @param[in] callback bool (*callback)(const cnode *cnode, unsigned int nestlev)
      * @param[in] nestlev
      */
     template <class T>
     static void list(const cnode *node, const T &callback, unsigned int nestlev=0)
     {
         if (node == nullptr) return;
-        callback(node, nestlev);
-        list(node->left_, callback, nestlev+1);
-        list(node->right_, callback, nestlev+1);
+        bool cont = callback(node, nestlev);
+        if (cont) {
+            list(node->left_, callback, nestlev+1);
+            list(node->right_, callback, nestlev+1);
+        }
     }
 
     static void print(const cnode *node, unsigned int nestlev=0);
@@ -90,6 +98,13 @@ class cnode {
 
     cnode(int op, cnode *left=nullptr, cnode *right=nullptr)
         : op_(op), left_(left), right_(right) {}
+
+    cnode(cnode const &obj)
+        : group_(obj.group()), op_(obj.op())
+    {
+        if (obj.left() != nullptr) left_ = new cnode(*obj.left());
+        if (obj.right() != nullptr) right_ = new cnode(*obj.right());
+    }
 
     virtual ~cnode()
     {
@@ -116,7 +131,7 @@ class cnode {
     int group_ = NG_NODE;
 
   private:
-    int const op_ = OP_EMPTY;
+    int op_ = OP_EMPTY;
     cnode *left_ = nullptr;
     cnode *right_ = nullptr;
 };

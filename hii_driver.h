@@ -15,14 +15,39 @@ class hii_driver;
 
 YY_DECL;
 
+class cleaf;
+class cscope;
+
+/*
+ * 字句解析＆構文解析
+ * Flex&Bisonにより構文木を生成する
+ * parse()
+ *  |-- set_ast()
+ * 
+ * 意味解析＆実行
+ * exec()
+ */
 class hii_driver {
   public:
     hii_driver() {}
     virtual ~hii_driver() {}
 
+    bool parse(std::string const & file);
     void set_ast(cnode *ast);
-    
-    bool exec(const std::string &f);
+
+    bool def_var(cnode const * node);
+    bool def_fun(cnode const * node);
+
+    cleaf eval_assign(cnode const * node);
+    cleaf eval_fun(cnode const * node);
+    cleaf eval_if(cnode const * node);
+    cleaf eval_call(cnode const * node);
+    cleaf eval_op1(cnode const * node);
+    cleaf eval_op2(cnode const * node);
+    cleaf eval_id(cnode const * node);
+    cleaf eval(cnode const * node);
+
+    bool exec(std::string const & file);
 
     // 変数の値を取得
     int value(const std::string & name)
@@ -54,9 +79,10 @@ class hii_driver {
 
   private:
     std::string file_;
-    //std::vector<cscope> scopes_;
-    //std::vector<cscope> current_scopes_; 
-    std::map<std::string, cnode *> identifiers_;
+    cnode * ast_ = nullptr;
+    std::vector<cnode *> vars_;
+    std::vector<cscope *> scopestack_;
+    cscope * scope_ = nullptr;
 };
 
 #endif

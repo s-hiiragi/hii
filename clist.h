@@ -1,5 +1,4 @@
-#ifndef NODELIST_H_
-#define NODELIST_H_
+#pragma once
 
 #include "cnode.h"
 
@@ -28,41 +27,38 @@
 class clist : public cnode
 {
   public:
+    template<class T>
+    void each(T const & fn)
+    {
+        if (this->left() == nullptr) return;
+
+        cnode * p = this;
+        do {
+            fn(*p->left());
+            p = p->right();
+        }
+        while (p != nullptr);
+    }
+
+    template<class T>
+    void each(T const & fn) const
+    {
+        if (this->left() == nullptr) return;
+
+        cnode const * p = this;
+        do {
+            fn(*p->left());
+            p = p->right();
+        }
+        while (p != nullptr);
+    }
+
     clist(int op)
-        : cnode(op, nullptr, nullptr)  { group_ = NG_LIST; }
+        : cnode(op, nullptr, nullptr) { group_ = NG_LIST; }
 
     clist(int op, cnode * node)
         : cnode(op, node, nullptr) { group_ = NG_LIST; }
 
-    int add(cnode * node) {
-
-        // 追加先ノードを探す
-        cnode * p = this;
-        while (true) {
-            if (p->left() == nullptr) {
-                break;
-            }
-            if (p->right() == nullptr) {
-                break;
-            } else {
-                p = p->right();
-            }
-        }
-
-        // ノードを追加
-        if (p->left() == nullptr) {
-            p->set_left(node);
-
-        } else if (p->right() == nullptr) {
-            cnode * n = new cnode(OP_LISTITEM, node, nullptr);
-            p->set_right(n);
-        }
-
-        return 0;
-    }
-
-    // TODO リスト走査関数を定義する
+    int add(cnode * node);
 };
-
-#endif
 

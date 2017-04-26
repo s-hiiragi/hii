@@ -58,7 +58,7 @@ lcmnt #[^\n]*
                     errno = 0;
                     long n = strtol(yytext, NULL, 10);
                     if (n < LONG_MIN || n > LONG_MAX || errno == ERANGE)
-                        driver.error("整数が範囲外です。: %s", yytext);
+                        driver.error("整数が範囲外です。: %s\n", yytext);
                     yylval->ival = n;
                     return token::TK_INT;
                 }
@@ -75,14 +75,14 @@ lcmnt #[^\n]*
                     yylval->sval = new std::string(yytext);
                     return token::TK_ID;
                 }
-.               driver.error("不正な文字です。: %s", yytext);
+.               driver.error("不正な文字です。: %s\n", yytext);
 
 %%
 
 void hii_driver::scan_begin()
 {
     if ((yyin = fopen(file_.c_str(), "r")) == 0)
-        this->error("%s がオープンできません。", file_);
+        this->error("%s がオープンできません。\n", file_);
 }
 
 void hii_driver::scan_end()

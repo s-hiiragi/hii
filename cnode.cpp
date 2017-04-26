@@ -87,7 +87,6 @@ const char * cnode::name() const
     case OP_NODE:     return "NODE";     break;
     case OP_STATS:    return "STATS";    break;
     case OP_ASSIGN:   return "ASSIGN";   break;
-    case OP_PRINT:    return "PRINT";    break;
     case OP_LIST:     return "LIST";     break;
     case OP_CALL:     return "CALL";     break;
     case OP_IF:       return "IF";       break;
