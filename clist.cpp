@@ -1,3 +1,5 @@
+#include <functional>
+#include "cnode.h"
 #include "clist.h"
 
 /**
@@ -47,5 +49,29 @@ int clist::add(cnode * node)
         p->set_right(n);
     }
     return 0;
+}
+
+void clist::each(std::function<void(cnode &)> const & fn)
+{
+    if (this->left() == nullptr) return;
+
+    cnode * p = this;
+    do {
+        fn(*p->left());
+        p = p->right();
+    }
+    while (p != nullptr);
+}
+
+void clist::each(std::function<void(cnode const &)> const & fn) const
+{
+    if (this->left() == nullptr) return;
+
+    cnode const * p = this;
+    do {
+        fn(*p->left());
+        p = p->right();
+    }
+    while (p != nullptr);
 }
 

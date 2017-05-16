@@ -5,6 +5,8 @@
 #include <map>
 #include "parser.hh"
 #include "cnode.h"
+#include "cleaf.h"
+#include "cscope.h"
 
 class hii_driver;
 
@@ -14,9 +16,6 @@ class hii_driver;
          hii_driver& driver)
 
 YY_DECL;
-
-class cleaf;
-class cscope;
 
 /*
  * 字句解析＆構文解析
@@ -32,25 +31,28 @@ class hii_driver {
     hii_driver() {}
     virtual ~hii_driver() {}
 
-    bool parse(std::string const & file);
+    bool parse(std::string const &file);
     void set_ast(cnode *ast);
 
-    bool def_var(cnode const * node);
-    bool def_fun(cnode const * node);
+    bool resolve_names(cnode &node);
 
-    cleaf eval_assign(cnode const * node);
-    cleaf eval_fun(cnode const * node);
-    cleaf eval_if(cnode const * node);
-    cleaf eval_call(cnode const * node);
-    cleaf eval_op1(cnode const * node);
-    cleaf eval_op2(cnode const * node);
-    cleaf eval_id(cnode const * node);
-    cleaf eval(cnode const * node);
+    bool def_var(cnode const *node);
+    bool def_fun(cnode const *node);
 
-    bool exec(std::string const & file);
+    cleaf eval_stats(cnode const *node);
+    cleaf eval_assign(cnode const *node);
+    cleaf eval_fun(cnode const *node);
+    cleaf eval_if(cnode const *node);
+    cleaf eval_call(cnode const *node);
+    cleaf eval_op1(cnode const *node);
+    cleaf eval_op2(cnode const *node);
+    cleaf eval_id(cnode const *node);
+    cleaf eval(cnode const *node);
+
+    bool exec(std::string const &file);
 
     // 変数の値を取得
-    int value(const std::string & name)
+    int value(const std::string &name)
     {
         // TODO 未定義チェックを行う
         // TODO 実装する
@@ -61,16 +63,27 @@ class hii_driver {
     // 構文にマッチした時のアクション
 
     // Error handling.
-    void error(char const * message)
+    void error(char const *message)
     {
         std::printf("%s", message);
     }
 
     //void error(const std::string& m, const std::string& text = "");
     template<class... Args>
-    void error(char const * format, Args const &... args)
+    void error(char const *format, Args const &... args)
     {
         std::printf(format, args...);
+    }
+
+    // for debug
+    void print_scopes() {
+        using std::cout;
+        using std::endl;
+        cout << "D: put scopes (size=" << scopes_.size() << ")" << endl;
+        cout << "  --" << endl;
+        for (auto const s : scopes_) {
+            s->print();
+        }
     }
 
   private:
@@ -79,10 +92,8 @@ class hii_driver {
 
   private:
     std::string file_;
-    cnode * ast_ = nullptr;
-    std::vector<cnode *> vars_;
-    std::vector<cscope *> scopestack_;
-    cscope * scope_ = nullptr;
+    cnode *ast_ = nullptr;
+    std::vector<cscope *> scopes_;
 };
 
 #endif

@@ -1,4 +1,6 @@
 #include <iostream>
+#include <functional>
+#include <list>
 #include "cnode.h"
 #include "cleaf.h"
 #include "hii_driver.h"
@@ -110,5 +112,87 @@ const char * cnode::name() const
     case OP_EMPTY:    return "EMPTY";    break;
     default:          return "unknown";  break;
     }
+}
+
+bool cnode::each(function<bool(cnode &node)> const &on_enter)
+{
+    if (!on_enter(*this))
+        return false;
+
+    if (this->left() != nullptr) {
+        bool ret = this->left()->each(on_enter);
+        if (!ret) return false;
+    }
+    if (this->right() != nullptr) {
+        bool ret = this->right()->each(on_enter);
+        if (!ret) return false;
+    }
+    return true;
+}
+
+bool cnode::each(function<bool(cnode const &node)> const &on_enter) const
+{
+    if (!on_enter(*this))
+        return false;
+
+    if (this->left() != nullptr) {
+        bool ret = this->left()->each(on_enter);
+        if (!ret) return false;
+    }
+    if (this->right() != nullptr) {
+        bool ret = this->right()->each(on_enter);
+        if (!ret) return false;
+    }
+    return true;
+}
+
+bool cnode::each(function<bool(cnode::cctrl &ctrl, cnode &node)> const &on_enter, function<bool(cnode::cctrl &ctrl, cnode &node)> const &on_leave)
+{
+    cctrl ctrl;
+    if (!on_enter(ctrl, *this))
+        return false;
+
+    if (ctrl.action_ == cctrl::eaction::action_do_break) return false;
+
+    if (ctrl.action_ != cctrl::eaction::action_skip_children)
+    {
+        if (this->left() != nullptr) {
+            bool ret = this->left()->each(on_enter, on_leave);
+            if (!ret) return false;
+        }
+        if (this->right() != nullptr) {
+            bool ret = this->right()->each(on_enter, on_leave);
+            if (!ret) return false;
+        }
+    }
+
+    cctrl ctrl2;
+    if (!on_leave(ctrl2, *this))
+        return false;
+
+    return true;
+}
+
+bool cnode::each(function<bool(cnode::cctrl &ctrl, cnode const &node)> const &on_enter, function<bool(cnode::cctrl &ctrl, cnode const &node)> const &on_leave) const
+{
+    cctrl ctrl;
+    if (!on_enter(ctrl, *this))
+        return false;
+    if (ctrl.action_ == cctrl::eaction::action_do_break) return false;
+    if (ctrl.action_ != cctrl::eaction::action_skip_children) {
+        if (this->left() != nullptr) {
+            bool ret = this->left()->each( on_enter, on_leave);
+            if (!ret) return false;
+        }
+        if (this->right() != nullptr) {
+            bool ret = this->right()->each(on_enter, on_leave);
+            if (!ret) return false;
+        }
+    }
+    cctrl ctrl2;
+    if (!on_leave(ctrl2, *this))
+        return false;
+
+    return true;
 }
 

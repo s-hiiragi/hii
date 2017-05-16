@@ -1,7 +1,8 @@
-#ifndef NODE_H_
-#define NODE_H_
+#ifndef CNODE_H_
+#define CNODE_H_
 
 #include <string>
+#include <functional>
 
 typedef enum node_type_
 {
@@ -68,8 +69,8 @@ typedef enum node_group_ {
     NG_LIST
 } node_group;
 
-// ノード
-
+class cleaf;
+class clist;
 class hii_driver;
 
 class cnode {
@@ -78,7 +79,7 @@ class cnode {
      * 左リーフ優先で深さ優先探索
      * 
      * @param[in] node
-     * @param[in] callback bool (*callback)(const cnode *cnode, unsigned int nestlev)
+     * @param[in] f  bool (*)(const cnode *node, unsigned int nestlev)
      * @param[in] nestlev
      */
     template <class T>
@@ -100,34 +101,79 @@ class cnode {
         : op_(op), left_(left), right_(right) {}
 
     cnode(cnode const &obj)
-        : group_(obj.group()), op_(obj.op())
     {
-        if (obj.left() != nullptr) left_ = new cnode(*obj.left());
-        if (obj.right() != nullptr) right_ = new cnode(*obj.right());
+        copy_members(obj);
     }
 
-    virtual ~cnode()
-    {
+    virtual ~cnode() {
         delete left_;
         delete right_;
     }
 
     int expr(hii_driver *driver) const;
 
-    const char * name() const;
-
     int group() const { return group_; }
     int op() const { return op_; }
-    const cnode *left() const { return left_; }
-    const cnode *right() const { return right_; }
+    char const * name() const;
     cnode *left() { return left_; }
     cnode *right() { return right_; }
+    cnode const *left() const { return left_; }
+    cnode const *right() const { return right_; }
+    
+    std::string && to_string() const {
+        return std::move(std::string(name()));
+    }
+
+    cnode & operator=(cnode const & obj) {
+        if (&obj == this) {
+            // XXX x=xはエラーとすべき？
+            return *this;
+        }
+        copy_members(obj);
+        return *this;
+    }
+
+    class cctrl
+    {
+        friend cnode;
+      public:
+        void do_break() { action_ = action_do_break; }
+        void skip_children() { action_ = action_skip_children; }
+        cctrl() : action_(noaction) {}
+      private:
+        enum eaction { noaction, action_do_break, action_skip_children };
+        eaction action_;
+    };
+
+    bool each(std::function<bool(cnode &node)> const &on_enter);
+    bool each(std::function<bool(cnode const &node)> const &on_enter) const;
+    bool each(std::function<bool(cctrl &ctrl, cnode &node)> const &on_enter, std::function<bool(cctrl &ctrl, cnode &node)> const &on_leave);
+    bool each(std::function<bool(cctrl &ctrl, cnode const &node)> const &on_enter, std::function<bool(cctrl &ctrl, cnode const &node)> const &on_leave) const;
 
   //protected:
     void set_left(cnode *left) { delete left_; left_ = left; }
     void set_right(cnode *right) { delete right_; right_ = right; }
 
   protected:
+    void copy_members(cnode const &obj) {
+        // free memory of memebers
+        if (left_ != nullptr) delete left_;
+        if (right_ != nullptr) delete right_;
+        // copy members
+        op_ = obj.op();
+        group_ = obj.group();
+        if (obj.left() != nullptr) {
+            left_ = new cnode(*obj.left());
+        } else {
+            left_ = nullptr;
+        }
+        if (obj.right() != nullptr) {
+            right_ = new cnode(*obj.right());
+        } else {
+            right_ = nullptr;
+        }
+    }
+
     int group_ = NG_NODE;
 
   private:
@@ -136,5 +182,5 @@ class cnode {
     cnode *right_ = nullptr;
 };
 
-#endif //NODE_H_
+#endif //CNODE_H_
 

@@ -1,11 +1,71 @@
 # 開発メモ
 
+[ ] (Mac) capslockをctrlに変更する
+
 [ ] cnode, clist, cleafにto\_string()を実装したい
-    - AST上でノードの表示に使う
+  - AST上でノードの表示に使う
+  - rvalue reference難しい
 
-[ ] expr式のevalを実装する
+[ ] 式の中に関数コールを書くための検討
+  - ","を使う文の中に関数コールが出てくると結合順位の問題が生じる
+  - 例えば、
+  - 関数コールの引数に関数コールを書いた場合
+      - f g 2,3
+      - ==> `f (g 2),3`なのか`f (g 2,3)`なのか
+
+[ ] cnode, clistを統一できないか？
+  - 基本はrightで連結していくリスト構造
+  - 値がある場合はleftに格納
+  - assign   : name, expr
+  - fun      : name, args, stats
+  - if       : cond, stats[, cond, stats[, ...]]  # elseはcond=trueとすれば良さそう
+  - call     : name[, expr[, ...]]
+  - mcomment : lcomment[, lcomment[, ...]]
+  - lcomment : string
+  - args     : [name[, name[, ...]]]
+
+[ ] scopestack操作を関数化する
+  - 行われている操作を調べる
+  - has\_var
+  - add\_var
+  - has\_fun
+  - add\_fun
+  - get\_fun
+  - new cscope, scopestack.push\_back
+  - scopestack.size
+  - delete scope, scopestack.pop\_back
+  - scopestackの末尾から先頭へのループ
+
+[x] 色をつけたい (curses/ANSI escape sequenceを使う?)
+
+[ ] 構文エラー、意味エラーの例外クラスを定義する
+
+[x] 関数内では関数が定義される前に定義済みだった識別子のみ参照できること
+  - 関数が定義されているスコープ(同階層)の識別子が不正に参照できてしまう
+
+[x] 定義されている識別子一覧を表示するデバッグ関数\_put\_scopesを定義する
+
+[ ] 上位のスコープの関数を参照できるようにする
+[x] 上位のスコープの変数を参照できるようにする
+
+[x] 関数がすでに上位のスコープで定義されている場合に警告を表示
+[x] 変数がすでに上位のスコープで定義されている場合に警告を表示
+
+[x] 変数の評価を実装する
+[x] 組込関数p(print)を実装する
+
+[x] レキシカルスコープを実装する
+[x] stats評価時にスコープを生成
+  生成タイミング
+  - unit
+  - fun
+  - if-then
+  - elif-then
+  - else
+  eval\_stats()を実装する
+
+[x] expr式のevalを実装する
 [x] if文のevalを実装する
-
 
 [ ] cnodeをcleafにキャストしてvalueにアクセスするのを簡単にしたい
 

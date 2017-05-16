@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+#include <functional>
 #include "cnode.h"
 
 /**
@@ -27,32 +29,6 @@
 class clist : public cnode
 {
   public:
-    template<class T>
-    void each(T const & fn)
-    {
-        if (this->left() == nullptr) return;
-
-        cnode * p = this;
-        do {
-            fn(*p->left());
-            p = p->right();
-        }
-        while (p != nullptr);
-    }
-
-    template<class T>
-    void each(T const & fn) const
-    {
-        if (this->left() == nullptr) return;
-
-        cnode const * p = this;
-        do {
-            fn(*p->left());
-            p = p->right();
-        }
-        while (p != nullptr);
-    }
-
     clist(int op)
         : cnode(op, nullptr, nullptr) { group_ = NG_LIST; }
 
@@ -60,5 +36,8 @@ class clist : public cnode
         : cnode(op, node, nullptr) { group_ = NG_LIST; }
 
     int add(cnode * node);
+
+    void each(std::function<void(cnode &)> const & fn);
+    void each(std::function<void(cnode const &)> const & fn) const;
 };
 
