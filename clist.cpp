@@ -51,25 +51,33 @@ int clist::add(cnode * node)
     return 0;
 }
 
-void clist::each(std::function<void(cnode &)> const & fn)
+bool clist::each(std::function<bool(cnode &)> const & fn)
 {
-    if (this->left() == nullptr) return;
+    if (this->left() == nullptr)
+        return true;
 
-    cnode * p = this;
+    bool ret = true;
+    cnode *p = this;
     do {
-        fn(*p->left());
+        ret = fn(*p->left());
+        if (!ret) break;
         p = p->right();
     }
     while (p != nullptr);
+
+    return ret;
 }
 
-void clist::each(std::function<void(cnode const &)> const & fn) const
+bool clist::each(std::function<bool(cnode const &)> const & fn) const
 {
-    if (this->left() == nullptr) return;
+    if (this->left() == nullptr)
+        return true;
 
+    bool ret = true;
     cnode const * p = this;
     do {
-        fn(*p->left());
+        ret = fn(*p->left());
+        if (!ret) break;
         p = p->right();
     }
     while (p != nullptr);

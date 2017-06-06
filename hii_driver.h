@@ -1,5 +1,5 @@
-#ifndef CALC_DRIVER_H__
-#define CALC_DRIVER_H__
+#ifndef HII_DRIVER_H_
+#define HII_DRIVER_H_
 
 #include <string>
 #include <map>
@@ -26,57 +26,62 @@ YY_DECL;
  * 意味解析＆実行
  * exec()
  */
-class hii_driver {
+class hii_driver
+{
   public:
     hii_driver() {}
     virtual ~hii_driver() {}
 
-    bool parse(std::string const &file);
-    void set_ast(cnode *ast);
+    bool parse(std::string const & file);
+    void set_ast(cnode * ast);
 
     bool resolve_names(cnode &node);
 
-    bool def_var(cnode const *node);
-    bool def_fun(cnode const *node);
+    bool def_var(cnode const * node);
+    bool def_fun(cnode const * node);
 
-    cleaf eval_stats(cnode const *node);
-    cleaf eval_assign(cnode const *node);
-    cleaf eval_fun(cnode const *node);
-    cleaf eval_if(cnode const *node);
-    cleaf eval_call(cnode const *node);
-    cleaf eval_op1(cnode const *node);
-    cleaf eval_op2(cnode const *node);
-    cleaf eval_id(cnode const *node);
-    cleaf eval(cnode const *node);
+    cleaf eval_stats(cnode const * node, cscope * scope = nullptr);
+    cleaf eval_assign(cnode const * node);
+    cleaf eval_fun(cnode const * node);
+    cleaf eval_ret(cnode const * node);
+    cleaf eval_if(cnode const * node);
+    cleaf eval_call(cnode const * node);
+    cleaf eval_loop(cnode const * node);
+    cleaf eval_op1(cnode const * node);
+    cleaf eval_op2(cnode const * node);
+    cleaf eval_id(cnode const * node);
+    cleaf eval_array(cnode const * node);
+    cleaf eval(cnode const * node);
 
-    bool exec(std::string const &file);
+    bool exec(std::string const & file);
 
     // 変数の値を取得
-    int value(const std::string &name)
+    /*
+    int value(const std::string & name)
     {
         // TODO 未定義チェックを行う
         // TODO 実装する
         //return nullptr;
         return 0;
     }
+    */
     
-    // 構文にマッチした時のアクション
-
     // Error handling.
-    void error(char const *message)
+    void error(char const * message)
     {
         std::printf("%s", message);
     }
 
     //void error(const std::string& m, const std::string& text = "");
     template<class... Args>
-    void error(char const *format, Args const &... args)
+    void error(char const * format, Args const &... args)
     {
         std::printf(format, args...);
     }
 
     // for debug
-    void print_scopes() {
+    void print_scopes()
+    {
         using std::cout;
         using std::endl;
         cout << "D: put scopes (size=" << scopes_.size() << ")" << endl;
@@ -90,11 +95,13 @@ class hii_driver {
     void scan_begin();
     void scan_end();
 
-  private:
     std::string file_;
-    cnode *ast_ = nullptr;
+    cnode * ast_ = nullptr;
+
+    // 実行時情報
     std::vector<cscope *> scopes_;
+    bool exit_fun_ = false;
 };
 
-#endif
+#endif // HII_DRIVER_H_
 

@@ -1,5 +1,4 @@
-#ifndef CNODE_H_
-#define CNODE_H_
+#pragma once
 
 #include <string>
 #include <functional>
@@ -33,9 +32,9 @@ typedef enum node_type_
     OP_IF,
     OP_ELIF,
     OP_ELSE,
-    OP_END,  // 未使用
     OP_FUN,
-    OP_RET,  // 未使用 (後々ret文を定義する?)
+    OP_RET,
+    OP_LOOP,
 
     OP_EXPRS,
     OP_ARGS,
@@ -48,6 +47,18 @@ typedef enum node_type_
     OP_MINUS,
     OP_TIMES,
     OP_DIVIDE,
+    OP_MODULO,
+    OP_EQ,
+    OP_NEQ,
+    OP_LT,
+    OP_LTEQ,
+    OP_GT,
+    OP_GTEQ,
+    OP_AND,
+    OP_OR,
+
+    // 関数コール式
+    OP_CALLEXPR,
 
     // コメント
     OP_MCOMMENT,  // multi line comment
@@ -59,21 +70,25 @@ typedef enum node_type_
     // リテラル
     OP_INT,
     OP_STR,
+    OP_ARRAY,
 
     OP_EMPTY // 値なしリーフ
 } node_type;
 
-typedef enum node_group_ {
+
+typedef enum node_group_
+{
     NG_NODE,
     NG_LEAF,
     NG_LIST
 } node_group;
 
+
 class cleaf;
 class clist;
-class hii_driver;
 
-class cnode {
+class cnode
+{
   public:
     /**
      * 左リーフ優先で深さ優先探索
@@ -83,7 +98,7 @@ class cnode {
      * @param[in] nestlev
      */
     template <class T>
-    static void list(const cnode *node, const T &callback, unsigned int nestlev=0)
+    static void list(const cnode * node, const T & callback, unsigned int nestlev = 0)
     {
         if (node == nullptr) return;
         bool cont = callback(node, nestlev);
@@ -93,44 +108,51 @@ class cnode {
         }
     }
 
-    static void print(const cnode *node, unsigned int nestlev=0);
+    static void print(cnode const * node, unsigned int nestlev = 0);
 
-    cnode() {}
+    cnode()
+    {
+    }
 
-    cnode(int op, cnode *left=nullptr, cnode *right=nullptr)
-        : op_(op), left_(left), right_(right) {}
+    cnode(int op, cnode * left = nullptr, cnode * right = nullptr)
+        : op_(op), left_(left), right_(right)
+    {
+    }
 
-    cnode(cnode const &obj)
+    cnode(cnode const & obj)
     {
         copy_members(obj);
     }
 
-    virtual ~cnode() {
+    virtual ~cnode()
+    {
         delete left_;
         delete right_;
     }
 
-    int expr(hii_driver *driver) const;
-
-    int group() const { return group_; }
-    int op() const { return op_; }
-    char const * name() const;
-    cnode *left() { return left_; }
-    cnode *right() { return right_; }
-    cnode const *left() const { return left_; }
-    cnode const *right() const { return right_; }
-    
-    std::string && to_string() const {
-        return std::move(std::string(name()));
-    }
-
-    cnode & operator=(cnode const & obj) {
+    cnode & operator=(cnode const & obj)
+    {
         if (&obj == this) {
             // XXX x=xはエラーとすべき？
             return *this;
         }
         copy_members(obj);
         return *this;
+    }
+
+    int group() const { return group_; }
+    int op() const { return op_; }
+    char const * name() const;
+
+    cnode * left() { return left_; }
+    cnode * right() { return right_; }
+    cnode const * left() const { return left_; }
+    cnode const * right() const { return right_; }
+   
+    // ノードのシンプルな文字列表現を返す
+    virtual std::string to_string() const
+    {
+        return "cnode(" + std::string(name()) + ")";
     }
 
     class cctrl
@@ -145,17 +167,31 @@ class cnode {
         eaction action_;
     };
 
-    bool each(std::function<bool(cnode &node)> const &on_enter);
-    bool each(std::function<bool(cnode const &node)> const &on_enter) const;
+    bool each(std::function<bool(cnode & node)> const & on_enter);
+    bool each(std::function<bool(cnode const & node)> const & on_enter) const;
+
     bool each(std::function<bool(cctrl &ctrl, cnode &node)> const &on_enter, std::function<bool(cctrl &ctrl, cnode &node)> const &on_leave);
     bool each(std::function<bool(cctrl &ctrl, cnode const &node)> const &on_enter, std::function<bool(cctrl &ctrl, cnode const &node)> const &on_leave) const;
 
   //protected:
-    void set_left(cnode *left) { delete left_; left_ = left; }
-    void set_right(cnode *right) { delete right_; right_ = right; }
+    void set_left(cnode * left)
+    {
+        delete left_;
+        left_ = left;
+    }
+
+    void set_right(cnode * right)
+    {
+        delete right_;
+        right_ = right;
+    }
 
   protected:
-    void copy_members(cnode const &obj) {
+    int group_ = NG_NODE;
+
+  private:
+    void copy_members(cnode const & obj)
+    {
         // free memory of memebers
         if (left_ != nullptr) delete left_;
         if (right_ != nullptr) delete right_;
@@ -174,13 +210,8 @@ class cnode {
         }
     }
 
-    int group_ = NG_NODE;
-
-  private:
     int op_ = OP_EMPTY;
-    cnode *left_ = nullptr;
-    cnode *right_ = nullptr;
+    cnode * left_ = nullptr;
+    cnode * right_ = nullptr;
 };
-
-#endif //CNODE_H_
 

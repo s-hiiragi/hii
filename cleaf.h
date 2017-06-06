@@ -1,46 +1,60 @@
-#ifndef CLEAF_H_
-#define CLEAF_H_
+#pragma once
 
 #include "cnode.h"
+#include "clist.h"
 
-class cleaf : public cnode {
-
-public:
+class cleaf : public cnode
+{
+  public:
     cleaf()
         : cnode(OP_EMPTY) { group_ = NG_LEAF; }
 
-    // opはID, LCMNTの場合があるため必須
-    cleaf(int op, std::string *sval)
+    // op = ID or STR or LCMNT
+    cleaf(int op, std::string * sval)
         : cnode(op), sval_(sval) { group_ = NG_LEAF; }
 
+    // op = STR
+    cleaf(int op, char c)
+        : cnode(op), sval_(new std::string(1, c)) { group_ = NG_LEAF; }
+
+    // op = INT
     cleaf(int op, int ival)
         : cnode(op), ival_(ival) { group_ = NG_LEAF; }
 
-    cleaf(cleaf const &obj)
-        : cnode(obj) {
+    cleaf(cleaf const & obj)
+        : cnode(obj)
+    {
         group_ = NG_LEAF;
         copy_members(obj);
     }
 
-    ~cleaf() {
+    ~cleaf()
+    {
         delete sval_;
     }
 
     bool has_sval() const { return sval_ != nullptr; }
     std::string const & sval() const { return *sval_; }
+
     int ival() const { return ival_; }
 
-    cleaf & operator=(cleaf const & obj) {
-        if (&obj == this) {
-            return *this;
+    std::string to_string() const
+    {
+        return "cleaf(" + std::string(name()) + ")";
+    }
+
+    cleaf & operator=(cleaf const & obj)
+    {
+        if (&obj != this) {
+            cnode::operator=(obj);
+            copy_members(obj);
         }
-        cnode::operator=(obj);
-        copy_members(obj);
         return *this;
     }
 
-protected:
-    void copy_members(cleaf const &obj) {
+  private:
+    void copy_members(cleaf const & obj)
+    {
         // free memory of members
         if (has_sval()) {
             delete sval_;
@@ -54,11 +68,8 @@ protected:
         ival_ = obj.ival();
     }
 
-private:
     // XXX 値を共用体で持つ
-    std::string *sval_ = nullptr;
     int ival_ = 0;
+    std::string * sval_ = nullptr;
 };
-
-#endif //CLEAF_H_
 

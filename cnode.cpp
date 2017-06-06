@@ -1,16 +1,18 @@
 #include <iostream>
 #include <functional>
-#include <list>
 #include "cnode.h"
 #include "cleaf.h"
 #include "hii_driver.h"
 
-using namespace std;
+using std::cout;
+using std::endl;
+using std::function;
 
-void cnode::print(const cnode *node, unsigned int nestlev)
+void cnode::print(cnode const *node, unsigned int nestlev)
 {
     if (node == nullptr) return;
-    
+
+    // リストの場合、各子要素のインデントが同じレベルになるよう調整する
     if (node->op() == OP_LISTITEM) {
         nestlev--;
         goto skip;
@@ -53,35 +55,6 @@ skip:
     cnode::print(node->right(), nestlev+1);
 }
 
-int cnode::expr(hii_driver *driver) const
-{
-    switch (op_) {
-      case OP_PLUS:
-        return left_->expr(driver) + right_->expr(driver);
-
-      case OP_MINUS:
-        return left_->expr(driver) - right_->expr(driver);
-
-      case OP_TIMES:
-        return left_->expr(driver) * right_->expr(driver);
-
-      case OP_DIVIDE:
-        return left_->expr(driver) / right_->expr(driver);
-
-      case OP_INT:
-        return dynamic_cast<const cleaf *>(this)->ival();
-
-      case OP_ID:
-        return driver->value(dynamic_cast<const cleaf *>(this)->sval());
-
-      case OP_NEG:
-        return -left_->expr(driver);
-
-      default:
-        return 0;       // error
-    }
-}
-
 const char * cnode::name() const
 {
     switch (op_)
@@ -94,9 +67,9 @@ const char * cnode::name() const
     case OP_IF:       return "IF";       break;
     case OP_ELIF:     return "ELIF";     break;
     case OP_ELSE:     return "ELSE";     break;
-    case OP_END:      return "END";      break;
     case OP_FUN:      return "FUN";      break;
     case OP_RET:      return "RET";      break;
+    case OP_LOOP:     return "LOOP";     break;
     case OP_EXPRS:    return "EXPRS";    break;
     case OP_ARGS:     return "ARGS";     break;
     case OP_NEG:      return "NEG";      break;
@@ -104,11 +77,22 @@ const char * cnode::name() const
     case OP_MINUS:    return "MINUS";    break;
     case OP_TIMES:    return "TIMES";    break;
     case OP_DIVIDE:   return "DIVIDE";   break;
+    case OP_MODULO:   return "MODULO";   break;
+    case OP_EQ:       return "EQ";       break;
+    case OP_NEQ:      return "NEQ";      break;
+    case OP_LT:       return "LT";       break;
+    case OP_LTEQ:     return "LTEQ";     break;
+    case OP_GT:       return "GT";       break;
+    case OP_GTEQ:     return "GTEQ";     break;
+    case OP_AND:      return "AND";      break;
+    case OP_OR:       return "OR";       break;
+    case OP_CALLEXPR: return "CALLEXPR"; break;
     case OP_MCOMMENT: return "MCOMMENT"; break;
     case OP_LCOMMENT: return "LCOMMENT"; break;
     case OP_ID:       return "ID";       break;
     case OP_INT:      return "INT";      break;
     case OP_STR:      return "STR";      break;
+    case OP_ARRAY:    return "ARRAY";    break;
     case OP_EMPTY:    return "EMPTY";    break;
     default:          return "unknown";  break;
     }

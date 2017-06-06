@@ -1,5 +1,4 @@
-#ifndef CSCOPE_H_
-#define CSCOPE_H_
+#pragma once
 
 #include <string>
 #include <map>
@@ -14,41 +13,55 @@
  * 
  * 用途
  * - 式で参照している変数/関数の名前解決
- * - a
  */
 class cscope
 {
+    /*
+  private:
+    struct varinfo
+    {
+        varinfo(cleaf *value, is_value_mutable = false)
+            : value(value), is_value_mutable(is_value_mutable) {}
+
+        cleaf *value;
+        bool is_value_mutable;
+    };
+    */
+
   public:
     cscope() {}
+
     virtual ~cscope() {
-        for (auto & e : vars_) {
+        for (auto &e : vars_) {
+            // hii_driver::resolve_names()でnullptrを入れるためnullチェックが必要
             if (e.second != nullptr) {
                 delete e.second;
             }
         }
     }
 
-    void add_var(std::string const & name, cleaf * value) {
+    // valueはnewして渡すこと (所有権を渡すこと)
+    void add_var(std::string const &name, cleaf *value) {
         vars_[name] = value;
     }
 
-    bool has_var(std::string const & name) {
+    bool has_var(std::string const &name) {
         return vars_.find(name) != vars_.end();
     }
 
-    cleaf get_var(std::string const & name) const {
+    cleaf get_var(std::string const &name) const {
         return *vars_.at(name);
     }
 
-    void add_fun(std::string const & name, cnode const * fun_node) {
+    void add_fun(std::string const &name, cnode const *fun_node) {
         funs_[name] = fun_node;
     }
 
-    bool has_fun(std::string const & name) {
+    bool has_fun(std::string const &name) {
         return funs_.find(name) != funs_.end();
     }
 
-    cnode const * get_fun(std::string const & name) const {
+    cnode const *get_fun(std::string const &name) const {
         return funs_.at(name);
     }
 
@@ -93,6 +106,4 @@ class cscope
     std::map<std::string, cleaf *> vars_;
     std::map<std::string, cnode const *> funs_;
 };
-
-#endif //CSCOPE_H_
 

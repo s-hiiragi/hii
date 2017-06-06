@@ -2,14 +2,22 @@
 #include <iostream>
 #include <iomanip>
 #include <algorithm>
+#include <cassert>
 #include <cstdio>
 #include "hii_driver.h"
 #include "parser.hh"
 #include "cnode.h"
 #include "cleaf.h"
 #include "cscope.h"
+#include "clog.h"
+#include "cvalue.h"
 
-using namespace std;
+using std::cin;
+using std::cout;
+using std::endl;
+using std::vector;
+using std::string;
+using my::clog;
 
 bool hii_driver::parse(string const &f)
 {
@@ -25,9 +33,11 @@ bool hii_driver::parse(string const &f)
 
 void hii_driver::set_ast(cnode *ast)
 {
-    ast_ = ast;
+    assert(ast != nullptr);
 
-    cout << "DEBUG: set_ast" << endl;
+    ast_ = ast;
+    clog::d("set_ast");
+
     cnode::print(ast);
 
 }
@@ -78,11 +88,22 @@ bool hii_driver::resolve_names(cnode &node)
                 args.each([&](cnode &a) {
                     auto &argname = dynamic_cast<cleaf &>(a).sval();
                     scopes.back()->add_var(argname, nullptr);  // value is dummy
+                    return true;
                 });
             }
             break;
         case OP_ARGS:
             ctrl.skip_children();
+            break;
+        case OP_LOOP:
+            {
+                if (n.left() != nullptr) {
+                    auto const &name = static_cast<cleaf const *>(n.left())->sval();
+                    cout << "on_enter: " << name << endl;
+                    // 変数を定義
+                    scopes.back()->add_var(name, nullptr);  // value is dummy
+                }
+            }
             break;
         case OP_ID:
             // 識別子が定義されているかチェック
@@ -94,7 +115,9 @@ bool hii_driver::resolve_names(cnode &node)
 
                 // 組込関数かチェック
                 if (name == "nop" ||
+                    name == "input" ||
                     name == "p" ||
+                    name == "print" ||
                     name == "_put_scopes") {
                     break;
                 }
@@ -132,10 +155,10 @@ bool hii_driver::resolve_names(cnode &node)
         return true;
     };
 
-    cout << "### resolve_names ###" << endl;
+    // 名前解決
     node.each(on_enter, on_leave);
-    cout << "####################" << endl;
 
+    // 後始末
     for (auto s : scopes) {
         delete s;
     }
@@ -147,7 +170,7 @@ bool hii_driver::def_var(cnode const *node)
     auto &name = static_cast<cleaf const *>(node->left())->sval();
     auto expr = node->right();
 
-    cout << "DEBUG: define variable \"" << name << "\"" << endl;
+    clog::d("assign name=%s", name.c_str());
 
     // 二重定義は不可
     if (scopes_.back()->has_var(name))
@@ -181,7 +204,7 @@ bool hii_driver::def_fun(cnode const *node)
 {
     auto &name = static_cast<cleaf const *>(node->left())->sval();
 
-    cout << "declare function \"" << name << "\"" << endl;
+    clog::d("declfun name=%s", name.c_str());
 
     // 二重定義は不可
     if (scopes_.back()->has_fun(name))
@@ -208,28 +231,33 @@ bool hii_driver::def_fun(cnode const *node)
     return true;
 }
 
-cleaf hii_driver::eval_stats(cnode const *node)
+cleaf hii_driver::eval_stats(cnode const *node, cscope *scope)
 {
     auto stats = static_cast<clist const *>(node);
  
     // スコープを追加
-    cscope *s = new cscope();
+    cscope *s = (scope != nullptr ? scope : new cscope());
     scopes_.push_back(s);
 
-    cout << "DEBUG: create scope: level=" << scopes_.size() << endl;
+    clog::d("create scope %zu", scopes_.size());
    
     // 複文を実行
+    cleaf res;
     stats->each([&](cnode const & n) {
-        eval(&n);
+        res = eval(&n);
+        if (exit_fun_) {
+            return false;
+        }
+        return true;
     });
 
     // スコープを削除
     delete s;
     scopes_.pop_back();
 
-    cout << "DEBUG: delete scope: level=" << scopes_.size() << endl;
+    clog::d("delete scope %zu", scopes_.size());
 
-    return cleaf();
+    return res;
 }
 
 cleaf hii_driver::eval_assign(cnode const *node)
@@ -251,6 +279,22 @@ cleaf hii_driver::eval_fun(cnode const *node)
         std::printf("E: 関数%sはすでに定義されています\n", 
             static_cast<cleaf const *>(node->left())->sval().c_str());
     }
+    return res;
+}
+
+cleaf hii_driver::eval_ret(cnode const *node)
+{
+    auto *expr = node->left();
+
+    cleaf res;
+    if (expr != nullptr) {
+        res = eval(expr);
+    }
+
+    // XXX 関数コール内でない場合はエラー
+    
+    exit_fun_ = true;
+    
     return res;
 }
 
@@ -289,6 +333,18 @@ cleaf hii_driver::eval_if(cnode const *node)
     }
 }
 
+// TODO eval_call()内に埋め込まれた組込関数の処理を分離、他の関数と共通化するために使う
+// 予めtopレベルのスコープに組込関数を登録しておく
+// 登録の際に、OP_BUILTIN_CALLのみを持ったOP_STATSをノードとして指定する
+/*
+cleaf hii_driver::eval_builtin_call(cnode const *node)
+{
+    cleaf res {};
+
+    return res;
+}
+*/
+
 cleaf hii_driver::eval_call(cnode const *node)
 {
     cleaf res {};
@@ -303,29 +359,66 @@ cleaf hii_driver::eval_call(cnode const *node)
     exprs->each([&](cnode const & n){
         cleaf v = eval(&n);
         values.push_back(v);
+        return true;
     });
 
     // 関数呼び出しを実行
+    // input  : vector<cleaf> values, context(scopes_, exit_fun_, eval_stats)
+    // output : cleaf
     // 組込関数->ユーザー定義関数の順に名前解決する
     if (name == "nop") {
         // do nothing
     }
-    else if (name == "p") {
-        for (auto const & v : values) {
-            switch (v.op()) {
+    else if (name == "input") {
+        int ival;
+        if (cin >> ival) {
+            res = cleaf(OP_INT, ival);
+        }
+        else {
+            cin.clear();
+            string *sval = new string();
+            if (cin >> *sval) {
+                res = cleaf(OP_STR, sval);
+            }
+            else {
+                assert(0);  // BUG!!
+            }
+        }
+    }
+    else if (name == "p" || name == "print") {
+        auto it = values.begin();
+
+        if (it != values.end()) {
+            switch (it->op()) {
             case OP_INT:
-                cout << v.ival();
+                cout << it->ival();
                 break;
             case OP_STR:
-                cout << v.sval();
+                cout << it->sval();
                 break;
             default:
                 cout << "<unknown>";
                 break;
             }
-            cout << " ";
+            it++;
+            for (; it != values.end(); it++) {
+                cout << " ";
+                switch (it->op()) {
+                case OP_INT:
+                    cout << it->ival();
+                    break;
+                case OP_STR:
+                    cout << it->sval();
+                    break;
+                default:
+                    cout << "<unknown>";
+                    break;
+                }
+            }
         }
-        cout << endl;
+        if (name == "p") {
+            cout << endl;
+        }
     }
     else if (name == "_put_scopes") {
         print_scopes();
@@ -344,6 +437,15 @@ cleaf hii_driver::eval_call(cnode const *node)
         auto args = static_cast<clist const *>(fun->right()->left());
         auto stats = static_cast<clist const *>(fun->right()->right());
 
+        // scopes_      [u][v][w]
+        //                  ^
+        //                  \-- b
+        // V
+        // scopes       [u][v]
+        // orig_scopes  [u][v][w]
+        // V
+        // scopes       [u][v][x]
+
         // スコープスタックを複製
         auto count = count_if(b, scopes_.rend(), [](cscope *){ return true; });
         vector<cscope *> scopes(count);
@@ -353,38 +455,98 @@ cleaf hii_driver::eval_call(cnode const *node)
         auto orig_scopes = scopes_;
         scopes_ = scopes;
 
-        cout << "DEBUG: swap scopes: level=" << orig_scopes.size() << " to " << scopes_.size() << endl;
+        clog::d("swap scopes: %zu -> %zu", orig_scopes.size(), scopes_.size());
 
-        // スコープを追加
+        // 実引数の定義用のスコープを作成
         cscope *s = new cscope();
         scopes_.push_back(s);
 
-        cout << "DEBUG: create scope: level=" << scopes_.size() << endl;
-       
         // 実引数を定義
         int i=0;
-        args->each([&](cnode const &n){
+        args->each([&](cnode const &n) {
             auto &name = static_cast<cleaf const &>(n).sval();
-            cleaf * value = new cleaf(values[i]);
+            cleaf *value = new cleaf(values[i]);
             scopes_.back()->add_var(name, value);
             i++;
+            return true;
         });
 
         // 複文を実行
-        stats->each([&](cnode const & n) {
-            eval(&n);
-        });
+        res = eval_stats(stats, s);
+        if (res.has_sval()) {
+            clog::d("ret %s (%s)", res.name(), res.sval());
+        } else {
+            clog::d("ret %s (%d)", res.name(), res.ival());
+        }
+        if (exit_fun_) {
+            exit_fun_ = false;
+        }
 
-        // スコープを削除
-        delete s;
-        scopes_.pop_back();
-
-        cout << "DEBUG: delete scope: level=" << scopes_.size() << endl;
-        
         // スコープスタックを復元
         scopes_ = orig_scopes;
 
-        cout << "DEBUG: restore scopes: level=" << scopes_.size() << endl;
+        clog::d("restore scopes: %zu", scopes_.size());
+    }
+
+    return res;
+}
+
+cleaf hii_driver::eval_loop(cnode const *node)
+{
+    cnode const *id = node->left(); // nullable
+    cnode const *arg1 = node->right()->left();
+    cnode const *arg2 = node->right()->right()->left(); // nullable
+    cnode const *stats = node->right()->right()->right();
+
+    assert(arg1 != nullptr);
+    assert(stats != nullptr);
+
+    string cnt_name = (id != nullptr ? static_cast<cleaf const *>(id)->sval() : "cnt");
+
+    // loop(num|collection)のパラメータをloop(begin,end)に統一
+    // XXX なんでres_が頭についているのか忘れた
+    bool const is_range = (arg2 != nullptr);
+    cleaf res_times, res_begin, res_end;
+    if (is_range) {
+        res_begin = eval(arg1);
+        res_end   = eval(arg2);
+    } else {
+        res_times = eval(arg1);
+    }
+    int num_begin, num_end;
+    if (is_range) {
+        num_begin = res_begin.ival();
+        num_end   = res_end.ival();
+    } else {
+        num_begin = 1;
+        switch (res_times.op()) {
+        case OP_INT:
+            num_end = res_times.ival();
+            break;
+        case OP_STR:
+            num_end = res_times.sval().size();
+            break;
+        default:
+            assert(0);
+        }
+    }
+
+    cleaf res;
+    for (int i = num_begin; i <= num_end; i++)
+    {
+        // ループカウンタを定義
+        cscope *s = new cscope();
+        if (is_range || res_times.op() == OP_INT) {
+            s->add_var(cnt_name, new cleaf(OP_INT, i));
+        } else {
+            // 文字列のn番目の文字をセット
+            s->add_var(cnt_name, new cleaf(OP_STR, res_times.sval().at(i-1)));
+        }
+
+        res = eval_stats(stats, s);
+        if (exit_fun_) {
+            break;
+        }
     }
 
     return res;
@@ -424,11 +586,11 @@ cleaf hii_driver::eval_op2(cnode const *node)
         std::runtime_error("右辺が数値ではありません");
     }
 
-    // TODO 演算を実施
     int val;
     switch (node->op())
     {
     case OP_PLUS:
+        // TODO オーバーフローチェック
         val = l_value.ival() + r_value.ival();
         break;
     case OP_MINUS:
@@ -438,7 +600,35 @@ cleaf hii_driver::eval_op2(cnode const *node)
         val = l_value.ival() * r_value.ival();
         break;
     case OP_DIVIDE:
+        // TODO 0除算エラーチェック
         val = l_value.ival() / r_value.ival();
+    case OP_MODULO:
+        // TODO 0除算エラーチェック, 負数チェック
+        val = l_value.ival() % r_value.ival();
+        break;
+    case OP_EQ:
+        val = (l_value.ival() == r_value.ival() ? 1 : 0);
+        break;
+    case OP_NEQ:
+        val = (l_value.ival() != r_value.ival() ? 1 : 0);
+        break;
+    case OP_LT:
+        val = (l_value.ival() < r_value.ival() ? 1 : 0);
+        break;
+    case OP_LTEQ:
+        val = (l_value.ival() <= r_value.ival() ? 1 : 0);
+        break;
+    case OP_GT:
+        val = (l_value.ival() > r_value.ival() ? 1 : 0);
+        break;
+    case OP_GTEQ:
+        val = (l_value.ival() >= r_value.ival() ? 1 : 0);
+        break;
+    case OP_AND:
+        val = (l_value.ival() && r_value.ival() ? 1 : 0);
+        break;
+    case OP_OR:
+        val = (l_value.ival() || r_value.ival() ? 1 : 0);
         break;
     default:
         std::logic_error("未定義の演算子です");
@@ -454,29 +644,79 @@ cleaf hii_driver::eval_id(cnode const *node)
 
     auto b = find_if(scopes_.rbegin(), scopes_.rend(), 
         [&](cscope *s){ return s->has_var(name); });
-    
-    if (b == scopes_.rend()) {
-        std::fprintf(stderr, "E: 変数%sは定義されていません\n", name.c_str());
-        throw std::runtime_error("変数が定義されていません");
+   
+    if (b != scopes_.rend()) {
+        return (*b)->get_var(name);
     }
 
-    return (*b)->get_var(name);
+    // 組込関数かチェック
+    if (name == "nop" ||
+        name == "input" ||
+        name == "p" ||
+        name == "print" ||
+        name == "_put_scopes")
+    {
+        // call_stmtのノード構造に変換する
+        cnode n(OP_CALL, new cleaf(*static_cast<cleaf const *>(node)), new clist(OP_EXPRS));
+
+        // 関数コールを評価
+        cleaf res = eval_call(&n);
+        return res;
+    }
+
+    // 変数が見つからない場合は関数を探す
+    auto b2 = find_if(scopes_.rbegin(), scopes_.rend(), 
+        [&](cscope *s){ return s->has_fun(name); });
+   
+    if (b2 != scopes_.rend()) {
+        // call_stmtのノード構造に変換する
+        cnode n(OP_CALL, new cleaf(*static_cast<cleaf const *>(node)), new clist(OP_EXPRS));
+
+        // 関数コールを評価
+        cleaf res = eval_call(&n);
+        return res;
+    }
+
+    std::fprintf(stderr, "E: 変数or関数%sが定義されていません\n", name.c_str());
+    throw std::runtime_error("変数or関数が定義されていません");
+}
+
+cleaf hii_driver::eval_array(cnode const * node)
+{
+    cleaf res;
+
+    clist const & exprs = *static_cast<clist const *>(node->left());
+
+    // TODO 配列リテラル(exprのリスト)を評価し、値に変換する
+    vector<cleaf> elements;
+
+    exprs.each([&](cnode const &n){
+        elements.push_back(eval(&n));
+        return true;
+    });
+
+    // cvalue ary(elements);
+    // return ary;
+
+    return res;
 }
 
 cleaf hii_driver::eval(cnode const *node)
 {
-    std::printf("DEBUG: eval %s\n", node->name());
+    clog::d("eval %s", node->name());
+
+    cvalue v;
 
     switch (node->op())
     {
     case OP_STATS:
         return eval_stats(node);
-    // 現在のスコープに変数を追加する
     case OP_ASSIGN:
         return eval_assign(node);
-    // 関数の場合は現在のスコープに関数を追加する
     case OP_FUN:
         return eval_fun(node);
+    case OP_RET:
+        return eval_ret(node);
     // 条件分岐
     case OP_IF:
         return eval_if(node);
@@ -486,6 +726,8 @@ cleaf hii_driver::eval(cnode const *node)
         return eval(node->left());
     case OP_CALL:
         return eval_call(node);
+    case OP_LOOP:
+        return eval_loop(node);
     // 1項演算子
     case OP_NEG:
         return eval_op1(node);
@@ -494,15 +736,27 @@ cleaf hii_driver::eval(cnode const *node)
     case OP_MINUS:
     case OP_TIMES:
     case OP_DIVIDE:
+    case OP_MODULO:
+    case OP_EQ:
+    case OP_NEQ:
+    case OP_LT:
+    case OP_LTEQ:
+    case OP_GT:
+    case OP_GTEQ:
+    case OP_AND:
+    case OP_OR:
         return eval_op2(node);
+    case OP_CALLEXPR:
+        return eval_call(node);
     case OP_LCOMMENT:
         return cleaf();
     case OP_MCOMMENT:
         {
             auto comments = static_cast<clist const *>(node);
-            comments->each([](cnode const &n){
+            comments->each([](cnode const &n) {
                 auto v = static_cast<cleaf const &>(n);
                 cout << v.sval() << endl;
+                return true;
             });
         }
         return cleaf();
@@ -513,6 +767,8 @@ cleaf hii_driver::eval(cnode const *node)
     case OP_INT:
     case OP_STR:
         return *static_cast<cleaf const *>(node);
+    case OP_ARRAY:
+        return eval_array(node);
     default:
         std::fprintf(stderr, "評価方法が未定義です: op=%s\n", node->name());
         throw std::logic_error("評価方法が未定義です");
@@ -530,19 +786,22 @@ bool hii_driver::exec(const string &f)
     // -> ASTのルート要素OP_STATSの評価時に生成される
 
     // 名前解決
-    cout << "DEBUG: resolve names: starting" << endl;
+    clog::d("### resolve names: starting ###");
     resolve_names(*ast_);
-    cout << "DEBUG: resolve names: finished" << endl;
+    clog::d("### resolve names: finished ###");
 
     // 意味解析＆実行
-    cout << "DEBUG: eval ast: starting" << endl;
-    //eval(ast_);
-    cout << "DEBUG: eval ast: finished" << endl;
+    clog::d("### eval ast: starting ###");
+    eval(ast_);
+    clog::d("### eval ast: finished ###");
+
+    if (exit_fun_) {
+        clog::e("関数の外でret文が使用されています");
+    }
 
     // 後始末
-    if (!scopes_.empty()) {
-        cout << "BUG!! scopestack.size != 0: size=" << scopes_.size() << endl;
-    }
+    assert(scopes_.empty());
+
     delete ast_;
     ast_ = nullptr;
 

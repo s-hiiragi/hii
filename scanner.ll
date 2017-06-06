@@ -28,11 +28,12 @@
 %option noyy_scan_string
 %option nounistd
 
-id    [a-zA-Z_][a-zA-Z_0-9]*
-int   [1-9][0-9]*
-str   \"([^\\"]|\\.)*\"
-blank [ \t]
-lcmnt #[^\n]*
+id     [a-zA-Z_][a-zA-Z_0-9]*
+int    [1-9][0-9]*
+str    \"([^\\"]|\\.)*\"
+/*"*/
+blank  [ \t]
+lcmnt  #[^\n]*
 
 %%
 %{
@@ -41,13 +42,22 @@ lcmnt #[^\n]*
     std::string string_buffer;
 %}
 
-"if"        return token::TK_IF;
-"elif"      return token::TK_ELIF;
-"else"      return token::TK_ELSE;
-"end"       return token::TK_END;
-"fun"       return token::TK_FUN;
+"if"                return token::TK_IF;
+"elif"              return token::TK_ELIF;
+"else"              return token::TK_ELSE;
+"end"               return token::TK_END;
+"fun"               return token::TK_FUN;
+"ret"               return token::TK_RET;
+"loop"              return token::TK_LOOP;
 
-[-+*/=()\n,]    return yy::parser::token_type(yytext[0]);
+".."                return token::TK_DDOT;
+"=="                return token::TK_EQ;
+"!="                return token::TK_NEQ;
+"<="                return token::TK_LTEQ;
+">="                return token::TK_GTEQ;
+"and"               return token::TK_AND;
+"or"                return token::TK_OR;
+[-+*/%=()\n,<>\[\]] return yy::parser::token_type(yytext[0]);
 
 {blank}+        ;
 {lcmnt}         {

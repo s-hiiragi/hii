@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <functional>
 #include "cnode.h"
 
@@ -35,9 +34,12 @@ class clist : public cnode
     clist(int op, cnode * node)
         : cnode(op, node, nullptr) { group_ = NG_LIST; }
 
+    clist(clist const & obj)
+        : cnode(obj) { group_ = NG_LIST; }
+
     int add(cnode * node);
 
-    void each(std::function<void(cnode &)> const & fn);
-    void each(std::function<void(cnode const &)> const & fn) const;
+    bool each(std::function<bool(cnode &)> const & fn);
+    bool each(std::function<bool(cnode const &)> const & fn) const;
 };
 

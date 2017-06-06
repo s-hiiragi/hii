@@ -1,7 +1,12 @@
-#include "hii_driver.h"
+#include <cassert>
 #include <cstdio>
 #include <string>
+#include "hii_driver.h"
 #include "test.h"
+#include "clog.h"
+
+using std::string;
+using my::clog;
 
 template<typename... Args>
 void my_printf(char const * const format,
@@ -26,7 +31,7 @@ bool has_suffix(const std::string &str, const std::string &suffix)
 int main(int argc, char *argv[])
 {
     // test
-    if (!test()) return 1;
+    assert(test());
 
     if (argc <= 1) {
         my_fprintf(stderr, "usage: %s {file} ...\n", argv[0]);
@@ -34,14 +39,19 @@ int main(int argc, char *argv[])
     }
 
     for (int i = 1; i < argc; i++) {
-        std::string fname = argv[i];
-
-        if (!has_suffix(fname, ".hi")) {
-            fname += ".hi";
+        string arg = argv[i];
+        
+        if (arg == "-nd") {
+            clog::set_debug(false);
         }
-
-        hii_driver driver;
-        driver.exec(fname);
+        else {
+            string fname = arg;
+            if (!has_suffix(fname, ".hi")) {
+                fname += ".hi";
+            }
+            hii_driver driver;
+            driver.exec(fname);
+        }
     }
     return 0;
 }
