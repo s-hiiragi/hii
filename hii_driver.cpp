@@ -12,7 +12,6 @@
 #include "cscope.h"
 #include "clog.h"
 #include "cvalue.h"
-#include "cscopestack.h"
 
 using std::cin;
 using std::cout;
@@ -266,7 +265,7 @@ bool hii_driver::def_var(cnode const *node)
     clog::d("assign name=%s", name.c_str());
 
     // 二重定義は不可
-    if (scopes_.back()->has_var(name))
+    if (scopes_.back().has_var(name))
         return false;
 
     // 上位のスコープに定義されている場合は警告を出す
@@ -274,7 +273,7 @@ bool hii_driver::def_var(cnode const *node)
     auto it = scopes_.rbegin();
     it++; // skip current scope
     for (; it != scopes_.rend(); it++) {
-        if ((*it)->has_var(name)) {
+        if (it->has_var(name)) {
             defined = true;
             break;
         }
@@ -287,7 +286,7 @@ bool hii_driver::def_var(cnode const *node)
     cvalue res = eval(expr);
 
     // 現在のスコープに変数を登録
-    scopes_.back()->add_var(name, res);
+    scopes_.back().add_var(name, res);
 
     return true;
 }
@@ -299,7 +298,7 @@ bool hii_driver::def_fun(cnode const *node)
     clog::d("declfun name=%s", name.c_str());
 
     // 二重定義は不可
-    if (scopes_.back()->has_fun(name))
+    if (scopes_.back().has_fun(name))
         return false;
 
     // 上位のスコープに定義されている場合は警告を出す
@@ -307,7 +306,7 @@ bool hii_driver::def_fun(cnode const *node)
     auto it = scopes_.rbegin();
     it++; // skip current scope
     for (; it != scopes_.rend(); it++) {
-        if ((*it)->has_fun(name)) {
+        if (it->has_fun(name)) {
             defined = true;
             break;
         }
@@ -318,18 +317,19 @@ bool hii_driver::def_fun(cnode const *node)
 
     // TODO 名前解決を行う
 
-    scopes_.back()->add_fun(name, node);
+    scopes_.back().add_fun(name, node);
 
     return true;
 }
 
+// TODO scopeを非ポインタにする
 cvalue hii_driver::eval_stats(cnode const *node, cscope *scope)
 {
     auto const &stats = *static_cast<clist const *>(node);
  
     // スコープを追加
     cscope *s = (scope != nullptr ? scope : new cscope());
-    scopes_.push_back(s);
+    scopes_.push_back(*s);
 
     clog::d("create scope %zu", scopes_.size());
    
@@ -448,8 +448,6 @@ cvalue hii_driver::eval_call(cnode const *node)
     });
 
     // 関数呼び出しを実行
-    // input  : vector<cvalue> values, context(scopes_, exit_fun_, eval_stats)
-    // output : cvalue
     // 組込関数->ユーザー定義関数の順に名前解決する
     if (name == "nop") {
         // do nothing
@@ -490,14 +488,14 @@ cvalue hii_driver::eval_call(cnode const *node)
     else {
         // スコープを上へ辿っていって関数を探す
         auto b = find_if(scopes_.rbegin(), scopes_.rend(), 
-            [&](cscope * s){ return s->has_fun(name); });
+            [&](cscope &s){ return s.has_fun(name); });
         
         if (b == scopes_.rend()) {
             std::fprintf(stderr, "E: 関数%sは未定義です\n", name.c_str());
             return res;
         }
 
-        cnode const *fun = (*b)->get_fun(name);
+        cnode const *fun = b->get_fun(name);
         auto const *args = static_cast<clist const *>(fun->right()->left());
         auto const *attrs = static_cast<clist const *>(fun->right()->right()->left());
         auto const *stats = static_cast<clist const *>(fun->right()->right()->right());
@@ -512,8 +510,8 @@ cvalue hii_driver::eval_call(cnode const *node)
         // scopes       [u][v][x]
 
         // スコープスタックを複製
-        auto count = count_if(b, scopes_.rend(), [](cscope *){ return true; });
-        vector<cscope *> scopes(count);
+        auto count = count_if(b, scopes_.rend(), [](cscope &){ return true; });
+        vector<cscope> scopes(count);
         copy(b, scopes_.rend(), scopes.rbegin());
 
         // スコープスタックを退避・差し替え
@@ -523,8 +521,7 @@ cvalue hii_driver::eval_call(cnode const *node)
         clog::d("swap scopes: %zu -> %zu", orig_scopes.size(), scopes_.size());
 
         // 実引数の定義用のスコープを作成
-        cscope *s = new cscope();
-        scopes_.push_back(s);
+        scopes_.push_back(cscope());
 
         clog::d("create scope: %zu", scopes_.size());
 
@@ -532,7 +529,7 @@ cvalue hii_driver::eval_call(cnode const *node)
         int i=0;
         args->each([&](cnode const &n) {
             auto const &name = static_cast<cleaf const &>(n).sval();
-            scopes_.back()->add_var(name, values[i]);
+            scopes_.back().add_var(name, values[i]);
             i++;
             return true;
         });
@@ -545,12 +542,12 @@ cvalue hii_driver::eval_call(cnode const *node)
                 vector<cvalue> rest(values.begin()+i, values.end());
                 clog::d("rest.size %zu", rest.size());
 
-                scopes_.back()->add_var(name, cvalue(rest));
+                scopes_.back().add_var(name, cvalue(rest));
             }
         }
 
         // 複文を実行
-        res = eval_stats(stats, s);
+        res = eval_stats(stats);
         if (res.is_int()) {
             clog::d("ret int (%d)", res.i());
         } else if (res.is_str()) {
@@ -953,11 +950,11 @@ cvalue hii_driver::eval_id(cnode const *node)
 
     // 変数を探す
     auto b = find_if(scopes_.rbegin(), scopes_.rend(), 
-        [&](cscope *s){ return s->has_var(name); });
+        [&](cscope &s){ return s.has_var(name); });
    
     if (b != scopes_.rend()) {
         // 変数の値を返す
-        return (*b)->get_var(name);
+        return b->get_var(name);
     }
 
     // 変数が見つからないので、以降は関数を探す
@@ -979,7 +976,7 @@ cvalue hii_driver::eval_id(cnode const *node)
 
     // 関数を探す
     auto b2 = find_if(scopes_.rbegin(), scopes_.rend(), 
-        [&](cscope *s){ return s->has_fun(name); });
+        [&](cscope &s){ return s.has_fun(name); });
    
     if (b2 != scopes_.rend()) {
         // call_stmtのノード構造に変換する

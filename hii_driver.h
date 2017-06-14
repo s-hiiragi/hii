@@ -77,8 +77,8 @@ class hii_driver
         using std::endl;
         cout << "D: put scopes (size=" << scopes_.size() << ")" << endl;
         cout << "  --" << endl;
-        for (auto const s : scopes_) {
-            s->print();
+        for (auto &&s : scopes_) {
+            s.print();
         }
     }
 
@@ -90,9 +90,9 @@ class hii_driver
     cnode * ast_ = nullptr;
 
     // 実行時情報
-    std::vector<cscope *> scopes_;
+    std::vector<cscope> scopes_;
     bool exit_fun_ = false;
-    std::map<std::string, cnode *> builtin_functions_;
+    //std::map<std::string, cnode *> builtin_functions_;
 };
 
 #endif // HII_DRIVER_H_
