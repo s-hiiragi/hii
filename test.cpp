@@ -14,8 +14,8 @@ bool assert_eq_(T const &x, T const &y, char const *msg) {
         return false;
     } else {
         printf("%s : \e[01;32mOK\e[00m\n", msg);
+        return true;
     } 
-    return true;
 }
 
 template <class T>
@@ -25,8 +25,8 @@ bool assert_ne_(T const &x, T const &y, char const *msg) {
         return false;
     } else {
         printf("%s : \e[01;32mOK\e[00m\n", msg);
+        return true;
     }
-    return true;
 }
 
 int test_cnode_clone()

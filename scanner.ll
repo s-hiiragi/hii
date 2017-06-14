@@ -42,22 +42,23 @@ lcmnt  #[^\n]*
     std::string string_buffer;
 %}
 
-"if"                return token::TK_IF;
-"elif"              return token::TK_ELIF;
-"else"              return token::TK_ELSE;
-"end"               return token::TK_END;
-"fun"               return token::TK_FUN;
-"ret"               return token::TK_RET;
-"loop"              return token::TK_LOOP;
+"if"    return token::TK_IF;
+"elif"  return token::TK_ELIF;
+"else"  return token::TK_ELSE;
+"end"   return token::TK_END;
+"fun"   return token::TK_FUN;
+"ret"   return token::TK_RET;
+"loop"  return token::TK_LOOP;
 
-".."                return token::TK_DDOT;
-"=="                return token::TK_EQ;
-"!="                return token::TK_NEQ;
-"<="                return token::TK_LTEQ;
-">="                return token::TK_GTEQ;
-"and"               return token::TK_AND;
-"or"                return token::TK_OR;
-[-+*/%=()\n,<>\[\]] return yy::parser::token_type(yytext[0]);
+"..."   return token::TK_TDOT;
+".."    return token::TK_DDOT;
+"=="    return token::TK_EQ;
+"!="    return token::TK_NEQ;
+"<="    return token::TK_LTEQ;
+">="    return token::TK_GTEQ;
+"and"   return token::TK_AND;
+"or"    return token::TK_OR;
+[-+*/%=()\n,<>\[\]@?]  return yy::parser::token_type(yytext[0]);
 
 {blank}+        ;
 {lcmnt}         {
@@ -92,7 +93,7 @@ lcmnt  #[^\n]*
 void hii_driver::scan_begin()
 {
     if ((yyin = fopen(file_.c_str(), "r")) == 0)
-        this->error("%s がオープンできません。\n", file_);
+        this->error("%s がオープンできません。\n", file_.c_str());
 }
 
 void hii_driver::scan_end()

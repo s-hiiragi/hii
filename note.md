@@ -1,5 +1,43 @@
 # 開発メモ
 
+[ ] "..."は省略記号(elipsis)
+
+[ ] 合計を求める計算をどう実装するか
+  - mutable x = 0 みたいな変数定義文を追加する？
+    - x = 1 のような代入が、定数定義と区別がつかなくてコードが読みづらくなりそう
+    - 再代入を禁止すれば良いのでは？
+    - 再代入したいケースが出てくるのでは？
+    - ++, +=のような演算のみサポートする？
+
+[ ] x..yを範囲リテラルにする
+
+[ ] cnodeを基本とすると書きづらい、Lispみたいにリストを基本としたらどうか?
+  - new cnode(OP\_xxx, $1, new cnode(OP\_NODE, $2, $3))
+  - これが
+  - new clist(OP\_xxx, $1, $2, $3)
+  - こう書ける
+  - リストのインデックスで参照するより名前で参照したいなら、cmapみたいなクラスを作る
+  - new cmap(OP\_xxx, {"name",$1}, {"args",$2}, {"body",$3})
+
+[ ] @name : アノテーション
+[ ] @require : 変数への型制約の追加
+[ ] ? : Option＜T＞型
+
+    # @deplicated @param T
+    # @require x in 1..10
+    # @require s 
+    fun f s @str, x? @int
+        p T + x
+    end
+
+[ ] eachメソッドから呼ぶコールバックにはイテレータを渡す
+  - cnode::each(std::function＜void(cnode::iterator it)＞ &f)
+  - it-＞exit, it-＞skip\_children等のメソッドを生やす
+
+[x] 評価結果を格納するクラスをcleafからcvalueに置き換える
+  - 評価結果に特有の実装をcleafに持ち込まない
+    - 配列は構文木(exprs)と評価結果(cvalue配列)でデータが異なる
+
 [ ] コーディングルールを決める
   - 修飾子の位置
     - 型 const \* 識別子
@@ -12,6 +50,8 @@
     - コンストラクタ、デストラクタ、代入演算子を最初に書く
   - インクルードガード
     - ifndefの代わりに可能な限りpragma onceを使う
+  - キャスト
+    - dynamic\_cast vs static\_cast
 
 [x] (Mac) capslockをctrlに変更する
   - システム環境設定 > キーボード > 修飾キーから変更可能
@@ -50,7 +90,7 @@
   - delete scope, scopestack.pop\_back
   - scopestackの末尾から先頭へのループ
 
-[ ] cleafの扱いを見直す
+[-] cleafの扱いを見直す
   - OP\_ARRAYはcleaf?
 
 [ ] 構文エラー、意味エラーの例外クラスを定義する

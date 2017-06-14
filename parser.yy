@@ -55,6 +55,7 @@
 %token          TK_FUN              "fun"
 %token          TK_RET              "ret"
 %token          TK_LOOP             "loop"
+%token          TK_TDOT             "..."
 %token          TK_DDOT             ".."
 %token          TK_EQ               "=="
 %token          TK_NEQ              "!="
@@ -76,10 +77,12 @@
 %type <node>    expr
 %type <list>    exprs
 %type <list>    some_exprs
-%type <node>    array
 %type <list>    args
 %type <node>    id
 %type <node>    lcmnt
+/*
+%type <list>    attrs
+*/
 
 %destructor { delete $$; } "id"
 %destructor { delete $$; } "str"
@@ -131,7 +134,13 @@ elifs       : %empty                        { $$ = nullptr; }
             | "else" '\n' stats             { $$ = new cnode(OP_ELSE, $3); }
             ;
 
-fun_stmt    : "fun" id args '\n' stats "end"    { $$ = new cnode(OP_FUN, $2, new cnode(OP_NODE, $3, $5)); }
+/*
+fun_stmt    : "fun" id args '\n' stats "end"           { $$ = new cnode(OP_FUN, $2, new cnode(OP_NODE, $3, $5)); }
+            ;
+*/
+fun_stmt    : "fun" id args '\n' stats "end"               { $$ = new cnode(OP_FUN, $2, new cnode(OP_NODE, $3, new cnode(OP_NODE, new clist(OP_ATTRS), $5))); }
+            | "fun" id args ',' "..." id '\n' stats "end"  { $$ = new cnode(OP_FUN, $2, new cnode(OP_NODE, $3, 
+                                                                new cnode(OP_NODE, &(new clist(OP_ATTRS, new cleaf(OP_ID, "variadic")))->add($6), $8))); }
             ;
 
 ret_stmt    : "ret"                         { $$ = new cnode(OP_RET); }
@@ -176,24 +185,31 @@ expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); 
             | expr "and" expr               { $$ = new cnode(OP_AND, $1, $3); }
             | expr "or" expr                { $$ = new cnode(OP_OR, $1, $3); }
             | '(' expr ')'                  { $$ = $2; }
-            | array                         { $$ = $1; }
+            | '[' exprs ']'                 { $$ = new cnode(OP_ARRAY, $2); }
+            | expr '[' expr ']'             { $$ = new cnode(OP_ELEMENT, $1, $3); }
             | id some_exprs                 { $$ = new cnode(OP_CALLEXPR, $1, $2); }
             | id                            { $$ = $1; }
             | "int"                         { $$ = new cleaf(OP_INT, $1); }
             | "str"                         { $$ = new cleaf(OP_STR, $1); }
             ;
 
-array       : '[' exprs ']'                 { $$ = new cnode(OP_ARRAY, $2); }
-            ;
-
 /* 末端 */
 id      : "id"                          { $$ = new cleaf(OP_ID, $1); }
         ;
+
 lcmnt   : "lcmnt"                       { $$ = new cleaf(OP_LCOMMENT, $1); }
         ;
 
+/* TODO id : "id" attrs, lcmnt : "lcmnt" attrs みたいに自由に属性を付けたい*/
+/*
+attrs   : %empty                        { $$ = new clist(OP_ATTRS); }
+        | '?'                           { $$ = new clist(OP_ATTRS, new cleaf(OP_ID, "optional")); }
+        | '@' "id"                      { $$ = new clist(OP_ATTRS, $2); }
+        | attrs '@' "id"                { $1->add($3); $$ = $1; }
+        ;
+*/
+
 %%
-// wrote by hirok
 /*
 void yy::parser::error(const yy::parser::location_type&, const std::string& m)
 {

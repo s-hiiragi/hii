@@ -5,22 +5,7 @@
 #include "test.h"
 #include "clog.h"
 
-using std::string;
 using my::clog;
-
-template<typename... Args>
-void my_printf(char const * const format,
-        Args const & ... args) noexcept
-{
-    std::printf(format, args ...);
-}
-
-template<typename... Args>
-void my_fprintf(std::FILE * fp, char const * const format,
-        Args const & ... args) noexcept
-{
-    std::fprintf(fp, format, args ...);
-}
 
 bool has_suffix(const std::string &str, const std::string &suffix)
 {
@@ -34,18 +19,18 @@ int main(int argc, char *argv[])
     assert(test());
 
     if (argc <= 1) {
-        my_fprintf(stderr, "usage: %s {file} ...\n", argv[0]);
+        std::fprintf(stderr, "usage: %s {file} ...\n", argv[0]);
         return 1;
     }
 
     for (int i = 1; i < argc; i++) {
-        string arg = argv[i];
+        std::string arg = argv[i];
         
         if (arg == "-nd") {
             clog::set_debug(false);
         }
         else {
-            string fname = arg;
+            std::string fname = arg;
             if (!has_suffix(fname, ".hi")) {
                 fname += ".hi";
             }

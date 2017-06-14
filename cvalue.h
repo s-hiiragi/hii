@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 class cvalue
 {
@@ -12,6 +13,8 @@ class cvalue
         INTEGER,
         STRING,
         ARRAY
+        // BOOLEAN 欲しい
+        // INTEGER -> NUMBERにしたい(実数も扱いたい)
     };
 
     cvalue()
@@ -20,16 +23,16 @@ class cvalue
     cvalue(int i)
         : type_(INTEGER) { value_.i = i; }
 
-    cvalue(std::string const & s)
+    cvalue(std::string const &s)
         : type_(STRING) { value_.s = new std::string(s); }
 
-    cvalue(std::vector<cvalue> const & a)
-        : type_(STRING) { value_.a = new std::vector<cvalue>(a); }
+    cvalue(std::vector<cvalue> const &a)
+        : type_(ARRAY) { value_.a = new std::vector<cvalue>(a); }
 
-    cvalue(std::vector<cvalue> && a)
-        : type_(STRING) { value_.a = new std::vector<cvalue>(std::move(a)); }
+    cvalue(std::vector<cvalue> &&a)
+        : type_(ARRAY) { value_.a = new std::vector<cvalue>(std::move(a)); }
 
-    cvalue(cvalue const & obj)
+    cvalue(cvalue const &obj)
         : type_(VOID)
     {
         copy_members(obj);
@@ -55,11 +58,29 @@ class cvalue
     bool is_str() const { return type_ == STRING; }
     bool is_ary() const { return type_ == ARRAY; }
 
+    std::string type_name() const
+    {
+        switch (type_) {
+        case VOID:
+            return "void";
+        case INTEGER:
+            return "int";
+        case STRING:
+            return "str";
+        case ARRAY:
+            return "ary";
+        default:
+            throw std::logic_error("invalid type");
+        }
+    }
+
     int i() const { return value_.i; }
     std::string & s() { return *value_.s; }
     std::string const & s() const { return *value_.s; }
     std::vector<cvalue> & a() { return *value_.a; }
     std::vector<cvalue> const & a() const { return *value_.a; }
+
+    std::string to_string() const;
 
   private:
     void copy_members(cvalue const & obj)

@@ -62,7 +62,6 @@ const char * cnode::name() const
     case OP_NODE:     return "NODE";     break;
     case OP_STATS:    return "STATS";    break;
     case OP_ASSIGN:   return "ASSIGN";   break;
-    case OP_LIST:     return "LIST";     break;
     case OP_CALL:     return "CALL";     break;
     case OP_IF:       return "IF";       break;
     case OP_ELIF:     return "ELIF";     break;
@@ -93,6 +92,8 @@ const char * cnode::name() const
     case OP_INT:      return "INT";      break;
     case OP_STR:      return "STR";      break;
     case OP_ARRAY:    return "ARRAY";    break;
+    case OP_ELEMENT:  return "ELEMENT";  break;
+    case OP_ATTRS:    return "ATTRS";    break;
     case OP_EMPTY:    return "EMPTY";    break;
     default:          return "unknown";  break;
     }

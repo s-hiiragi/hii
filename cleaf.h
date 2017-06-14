@@ -10,7 +10,9 @@ class cleaf : public cnode
         : cnode(OP_EMPTY) { group_ = NG_LEAF; }
 
     // op = ID or STR or LCMNT
-    cleaf(int op, std::string * sval)
+    cleaf(int op, char const *str)
+        : cnode(op) { sval_ = new std::string(str); group_ = NG_LEAF; }
+    cleaf(int op, std::string *sval)
         : cnode(op), sval_(sval) { group_ = NG_LEAF; }
 
     // op = STR

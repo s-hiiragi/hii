@@ -27,7 +27,7 @@ typedef enum node_type_
 
     // 文
     OP_ASSIGN,
-    OP_LIST,  // 未使用っぽい
+//    OP_LIST,  // 未使用っぽい
     OP_CALL,
     OP_IF,
     OP_ELIF,
@@ -71,6 +71,11 @@ typedef enum node_type_
     OP_INT,
     OP_STR,
     OP_ARRAY,
+
+    OP_ELEMENT,
+
+    // アノテーション
+    OP_ATTRS,
 
     OP_EMPTY // 値なしリーフ
 } node_type;

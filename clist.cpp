@@ -31,7 +31,7 @@
  * - left == nullptr なら空のリスト
  * - left != nullptr ならrightを末端まで辿るとright == nullptr
  */
-int clist::add(cnode * node)
+clist & clist::add(cnode * node)
 {
     if (this->left() == nullptr) {
         // リストが空の場合
@@ -48,7 +48,7 @@ int clist::add(cnode * node)
         cnode * n = new cnode(OP_LISTITEM, node, nullptr);
         p->set_right(n);
     }
-    return 0;
+    return *this;
 }
 
 bool clist::each(std::function<bool(cnode &)> const & fn)

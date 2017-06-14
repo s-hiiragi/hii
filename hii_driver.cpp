@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
+#include <sstream>
 #include "hii_driver.h"
 #include "parser.hh"
 #include "cnode.h"
@@ -11,13 +12,49 @@
 #include "cscope.h"
 #include "clog.h"
 #include "cvalue.h"
+#include "cscopestack.h"
 
 using std::cin;
 using std::cout;
 using std::endl;
 using std::vector;
 using std::string;
+using std::stringstream;
 using my::clog;
+
+/**
+ * 字句解析,構文解析,意味解析,インタプリタ実行を行う
+ */
+bool hii_driver::exec(const string &f)
+{
+    if (!parse(f)) return false;
+
+    // グローバルスコープを生成
+    // -> ASTのルート要素OP_STATSの評価時に生成される
+    // XXX グローバルスコープに予め何か定義したい場合に不便...
+
+    // 名前解決
+    clog::d("### resolve names: starting ###");
+    resolve_names(*ast_);
+    clog::d("### resolve names: finished ###");
+
+    // 意味解析＆実行
+    clog::d("### eval ast: starting ###");
+    eval(ast_);
+    clog::d("### eval ast: finished ###");
+
+    if (exit_fun_) {
+        clog::e("関数の外でret文が使用されています");
+    }
+
+    // 後始末
+    assert(scopes_.empty());
+
+    delete ast_;
+    ast_ = nullptr;
+
+    return true;
+}
 
 bool hii_driver::parse(string const &f)
 {
@@ -39,8 +76,45 @@ void hii_driver::set_ast(cnode *ast)
     clog::d("set_ast");
 
     cnode::print(ast);
-
 }
+
+/*
+void hii_driver::def_builtin_fun(cscope &scope, string const &name, clist *args)
+{
+    cnode *body = new clist(OP_STATS);
+    body->add(new cleaf(OP_BUILTIN_CALL, new string(name)));
+    
+    cnode *fun = new cnode(OP_FUN, new cleaf(OP_ID, new string(name)), new cnode(OP_NODE, args, body));
+    
+    builtin_functions_.push_back(fun);
+    scope.add_fun(name, fun);
+}
+
+void hii_driver::def_builtin_functions(cscope &scope)
+{
+    cnode *nop_args = new clist(OP_ARGS);
+    def_builtin_fun(scope, "nop", nop_args);
+
+    cnode *input_args = new clist(OP_ARGS);
+    def_builtin_fun(scope, "input", input_args);
+
+    cnode *p_args = new clist(OP_ARGS);  // 可変長引数
+    def_builtin_fun(scope, "p", p_args);
+
+    cnode *print_args = new clist(OP_ARGS);  // 可変長引数
+    def_builtin_fun(scope, "print", print_args);
+
+    cnode *_put_scopes_args = new clist(OP_ARGS);
+    def_builtin_fun(scope, "_put_scopes", _put_scopes_args);
+}
+
+void hii_driver::free_builtin_functions()
+{
+    for (auto && e : builtin_functions_) {
+        // 解放
+    }
+}
+*/
 
 bool hii_driver::resolve_names(cnode &node)
 {
@@ -52,30 +126,36 @@ bool hii_driver::resolve_names(cnode &node)
         case OP_STATS:
             // スコープ追加
             scopes.push_back(new cscope());
-            cout << "on_enter: " << n.name() << " nest=" << scopes.size() << endl;
+            clog::d("on_enter: %s nest=%zu", n.name(), scopes.size());
+
+            if (scopes.size() == 1) {
+                // TODO 組込関数を定義(evalの方でも行う)
+                // TODO 解放処理も必要
+                // def_builtin_functions(*scopes.back());
+            }
             break;
         case OP_ASSIGN:
             {
                 // 変数の二重定義をチェック
-                auto &name = static_cast<cleaf &>(*n.left()).sval();
-                cout << "on_enter: " << n.name() << " " << name << endl;
+                auto const &name = static_cast<cleaf &>(*n.left()).sval();
+                clog::d("on_enter: %s %s", n.name(), name.c_str());
                 if (scopes.back()->has_var(name)) {
-                    cout << "E: 変数" << name << "はすでに定義されています" << endl;
+                    clog::e("変数%sはすでに定義されています", name.c_str());
                     //return false;
                     return true;
                 }
 
                 // 変数を定義
-                scopes.back()->add_var(name, nullptr);  // value is dummy
+                scopes.back()->add_var(name, cvalue());  // value is dummy
             }
             break;
         case OP_FUN:
             {
                 // 関数の二重定義をチェック
-                auto &name = static_cast<cleaf &>(*n.left()).sval();
-                cout << "on_enter: " << n.name() << " " << name << endl;
+                auto const &name = static_cast<cleaf &>(*n.left()).sval();
+                clog::d("on_enter: %s %s", n.name(), name.c_str());
                 if (scopes.back()->has_fun(name)) {
-                    cout << "E: 関数" << name << "はすでに定義されています" << endl;
+                    clog::e("関数%sはすでに定義されています", name.c_str());
                     //return false;
                     return true;
                 }
@@ -84,10 +164,10 @@ bool hii_driver::resolve_names(cnode &node)
                 scopes.back()->add_fun(name, nullptr);  // value is dummy
 
                 // 引数を定義
-                auto &args = static_cast<clist &>(*n.right()->left());
-                args.each([&](cnode &a) {
-                    auto &argname = dynamic_cast<cleaf &>(a).sval();
-                    scopes.back()->add_var(argname, nullptr);  // value is dummy
+                auto const &args = static_cast<clist &>(*n.right()->left());
+                args.each([&](cnode const &a) {
+                    auto const &argname = dynamic_cast<cleaf const &>(a).sval();
+                    scopes.back()->add_var(argname, cvalue());  // value is dummy
                     return true;
                 });
             }
@@ -95,13 +175,26 @@ bool hii_driver::resolve_names(cnode &node)
         case OP_ARGS:
             ctrl.skip_children();
             break;
+        case OP_ATTRS:
+            {
+                auto const &attrs = static_cast<clist const &>(n);
+                if (attrs.left() != nullptr) {
+                    auto const &attr1 = static_cast<cleaf const *>(attrs.left())->sval();
+                    if (attr1 == "variadic") {
+                        auto const &name = static_cast<cleaf const *>(attrs.right()->left())->sval();
+                        scopes.back()->add_var(name, cvalue());  // value is dummy
+                    }
+                }
+            }
+            ctrl.skip_children();
+            break;
         case OP_LOOP:
             {
                 if (n.left() != nullptr) {
                     auto const &name = static_cast<cleaf const *>(n.left())->sval();
-                    cout << "on_enter: " << name << endl;
+                    clog::d("on_enter: %s", n.name());
                     // 変数を定義
-                    scopes.back()->add_var(name, nullptr);  // value is dummy
+                    scopes.back()->add_var(name, cvalue());  // value is dummy
                 }
             }
             break;
@@ -110,8 +203,8 @@ bool hii_driver::resolve_names(cnode &node)
             // XXX 仮引数はチェックしないようにする!
             //     -> OP_ARGSだったら子ノードを探索しない、という処理が必要?
             {
-                auto &name = static_cast<cleaf &>(n).sval();
-                cout << "on_enter: " << n.name() << " " << name << endl;
+                auto const &name = static_cast<cleaf &>(n).sval();
+                clog::d("on_enter: %s %s", n.name(), name.c_str());
 
                 // 組込関数かチェック
                 if (name == "nop" ||
@@ -125,14 +218,14 @@ bool hii_driver::resolve_names(cnode &node)
                 bool found = false;
                 for (auto it = scopes.rbegin(); it != scopes.rend(); it++)
                 {
-                    auto s = *it;
+                    auto *s = *it;
                     if (s->has_var(name) || s->has_fun(name)) {
                         found = true;
                         break;
                     }
                 }
                 if (!found) {
-                    cout << "E: 識別子" << name << "は定義されていません" << endl;
+                    clog::e("識別子%sは定義されていません", name.c_str());
                     //return false;
                     return true;
                 }
@@ -149,7 +242,7 @@ bool hii_driver::resolve_names(cnode &node)
             // スコープ削除
             delete scopes.back();
             scopes.pop_back();
-            cout << "on_leave: " << n.name() << " nest=" << scopes.size() << endl;
+            clog::d("on_leave: %s %zu", n.name(), scopes.size());
             break;
         }
         return true;
@@ -159,7 +252,7 @@ bool hii_driver::resolve_names(cnode &node)
     node.each(on_enter, on_leave);
 
     // 後始末
-    for (auto s : scopes) {
+    for (auto *s : scopes) {
         delete s;
     }
     scopes.clear();
@@ -167,8 +260,8 @@ bool hii_driver::resolve_names(cnode &node)
 
 bool hii_driver::def_var(cnode const *node)
 {
-    auto &name = static_cast<cleaf const *>(node->left())->sval();
-    auto expr = node->right();
+    auto const &name = static_cast<cleaf const *>(node->left())->sval();
+    auto const *expr = node->right();
 
     clog::d("assign name=%s", name.c_str());
 
@@ -187,12 +280,11 @@ bool hii_driver::def_var(cnode const *node)
         }
     }
     if (defined) {
-        fprintf(stderr, "W: 上位のスコープで定義された変数%sが隠されます\n", name.c_str());
+        clog::i("上位のスコープで定義された変数%sが隠されます\n", name.c_str());
     }
 
     // 式を評価
-    cleaf * res = new cleaf(); // TODO newさせない
-    *res = eval(expr);
+    cvalue res = eval(expr);
 
     // 現在のスコープに変数を登録
     scopes_.back()->add_var(name, res);
@@ -202,7 +294,7 @@ bool hii_driver::def_var(cnode const *node)
 
 bool hii_driver::def_fun(cnode const *node)
 {
-    auto &name = static_cast<cleaf const *>(node->left())->sval();
+    auto const &name = static_cast<cleaf const *>(node->left())->sval();
 
     clog::d("declfun name=%s", name.c_str());
 
@@ -231,9 +323,9 @@ bool hii_driver::def_fun(cnode const *node)
     return true;
 }
 
-cleaf hii_driver::eval_stats(cnode const *node, cscope *scope)
+cvalue hii_driver::eval_stats(cnode const *node, cscope *scope)
 {
-    auto stats = static_cast<clist const *>(node);
+    auto const &stats = *static_cast<clist const *>(node);
  
     // スコープを追加
     cscope *s = (scope != nullptr ? scope : new cscope());
@@ -242,8 +334,8 @@ cleaf hii_driver::eval_stats(cnode const *node, cscope *scope)
     clog::d("create scope %zu", scopes_.size());
    
     // 複文を実行
-    cleaf res;
-    stats->each([&](cnode const & n) {
+    cvalue res;
+    stats.each([&](cnode const &n) {
         res = eval(&n);
         if (exit_fun_) {
             return false;
@@ -260,73 +352,69 @@ cleaf hii_driver::eval_stats(cnode const *node, cscope *scope)
     return res;
 }
 
-cleaf hii_driver::eval_assign(cnode const *node)
+cvalue hii_driver::eval_assign(cnode const *node)
 {
-    cleaf res {};
-
     if (!def_var(node)) {
-        std::printf("E: 変数%sはすでに定義されています\n", 
+        clog::e("変数%sはすでに定義されています", 
             static_cast<cleaf const *>(node->left())->sval().c_str());
     }
-    return res;
+    return cvalue();
 }
 
-cleaf hii_driver::eval_fun(cnode const *node)
+cvalue hii_driver::eval_fun(cnode const *node)
 {
-    cleaf res {};
-
     if (!def_fun(node)) {
-        std::printf("E: 関数%sはすでに定義されています\n", 
+        clog::e("関数%sはすでに定義されています", 
             static_cast<cleaf const *>(node->left())->sval().c_str());
     }
-    return res;
+    return cvalue();
 }
 
-cleaf hii_driver::eval_ret(cnode const *node)
+cvalue hii_driver::eval_ret(cnode const *node)
 {
-    auto *expr = node->left();
+    auto const *expr = node->left();
 
-    cleaf res;
+    // TODO 関数コール内でない場合はエラー
+
+    cvalue res;
     if (expr != nullptr) {
         res = eval(expr);
     }
-
-    // XXX 関数コール内でない場合はエラー
     
     exit_fun_ = true;
     
     return res;
 }
 
-cleaf hii_driver::eval_if(cnode const *node)
+cvalue hii_driver::eval_if(cnode const *node)
 {
-    auto cond = node->left();
-    auto stats = node->right()->left();
-    auto elifs = node->right()->right();
+    auto const *cond = node->left();
+    auto const *stats = node->right()->left();
+    auto const *elifs = node->right()->right();
     
     // condを評価
-    cleaf res = this->eval(cond);
+    cvalue &&res = eval(cond);
 
     bool result;
-    switch (res.op()) {
-    // 真:""以外 偽:""
-    case OP_STR:
-        result = (res.sval() != "");
-        break;
+    switch (res.type()) {
     // 真:0以外 偽:0
-    case OP_INT:
-        result = (res.ival() != 0);
+    case cvalue::INTEGER:
+        result = (res.i() != 0);
+        break;
+    // 真:""以外 偽:""
+    case cvalue::STRING:
+        result = (res.s() != "");
         break;
     default:
-        std::fprintf(stderr, "評価結果を真偽値に変換できません: op=%s\n", res.name());
-        throw new std::logic_error("評価結果を真偽値に変換できません");
+        clog::e("評価結果を真偽値に変換できません: type=%d", res.type());
+        throw std::logic_error("評価結果を真偽値に変換できません");
     }
 
     if (result) {
         return eval(stats);
     } else {
         if (elifs == nullptr) {
-            return cleaf();
+            return cvalue();
         } else {
             return eval(elifs);
         }
@@ -337,51 +425,48 @@ cleaf hii_driver::eval_if(cnode const *node)
 // 予めtopレベルのスコープに組込関数を登録しておく
 // 登録の際に、OP_BUILTIN_CALLのみを持ったOP_STATSをノードとして指定する
 /*
-cleaf hii_driver::eval_builtin_call(cnode const *node)
+cvalue hii_driver::eval_builtin_call(cnode const *node)
 {
-    cleaf res {};
-
-    return res;
+    
 }
 */
 
-cleaf hii_driver::eval_call(cnode const *node)
+cvalue hii_driver::eval_call(cnode const *node)
 {
-    cleaf res {};
+    cvalue res;
 
-    auto &name = static_cast<cleaf const *>(node->left())->sval();
-    auto exprs = static_cast<clist const *>(node->right());
+    auto const &name = static_cast<cleaf const *>(node->left())->sval();
+    auto const *exprs = static_cast<clist const *>(node->right());
 
     // 引数を評価
     // XXX 関数の名前解決前に引数を評価するの微妙...
-    // XXX 何度もコピーが発生している
-    vector<cleaf> values;
-    exprs->each([&](cnode const & n){
-        cleaf v = eval(&n);
+    vector<cvalue> values;
+    exprs->each([&](cnode const &n){
+        cvalue &&v = eval(&n);
         values.push_back(v);
         return true;
     });
 
     // 関数呼び出しを実行
-    // input  : vector<cleaf> values, context(scopes_, exit_fun_, eval_stats)
-    // output : cleaf
+    // input  : vector<cvalue> values, context(scopes_, exit_fun_, eval_stats)
+    // output : cvalue
     // 組込関数->ユーザー定義関数の順に名前解決する
     if (name == "nop") {
         // do nothing
     }
     else if (name == "input") {
-        int ival;
-        if (cin >> ival) {
-            res = cleaf(OP_INT, ival);
+        int i;
+        if (cin >> i) {
+            res = cvalue(i);
         }
         else {
             cin.clear();
-            string *sval = new string();
-            if (cin >> *sval) {
-                res = cleaf(OP_STR, sval);
+            string s;
+            if (cin >> s) {
+                res = cvalue(s);
             }
             else {
-                assert(0);  // BUG!!
+                assert(0);  // 標準入力から何らかの原因で文字列を読み取れなかった
             }
         }
     }
@@ -389,31 +474,10 @@ cleaf hii_driver::eval_call(cnode const *node)
         auto it = values.begin();
 
         if (it != values.end()) {
-            switch (it->op()) {
-            case OP_INT:
-                cout << it->ival();
-                break;
-            case OP_STR:
-                cout << it->sval();
-                break;
-            default:
-                cout << "<unknown>";
-                break;
-            }
+            cout << it->to_string();
             it++;
             for (; it != values.end(); it++) {
-                cout << " ";
-                switch (it->op()) {
-                case OP_INT:
-                    cout << it->ival();
-                    break;
-                case OP_STR:
-                    cout << it->sval();
-                    break;
-                default:
-                    cout << "<unknown>";
-                    break;
-                }
+                cout << ", " << it->to_string();
             }
         }
         if (name == "p") {
@@ -433,9 +497,10 @@ cleaf hii_driver::eval_call(cnode const *node)
             return res;
         }
 
-        cnode const * fun = (*b)->get_fun(name);
-        auto args = static_cast<clist const *>(fun->right()->left());
-        auto stats = static_cast<clist const *>(fun->right()->right());
+        cnode const *fun = (*b)->get_fun(name);
+        auto const *args = static_cast<clist const *>(fun->right()->left());
+        auto const *attrs = static_cast<clist const *>(fun->right()->right()->left());
+        auto const *stats = static_cast<clist const *>(fun->right()->right()->right());
 
         // scopes_      [u][v][w]
         //                  ^
@@ -461,22 +526,37 @@ cleaf hii_driver::eval_call(cnode const *node)
         cscope *s = new cscope();
         scopes_.push_back(s);
 
+        clog::d("create scope: %zu", scopes_.size());
+
         // 実引数を定義
         int i=0;
         args->each([&](cnode const &n) {
-            auto &name = static_cast<cleaf const &>(n).sval();
-            cleaf *value = new cleaf(values[i]);
-            scopes_.back()->add_var(name, value);
+            auto const &name = static_cast<cleaf const &>(n).sval();
+            scopes_.back()->add_var(name, values[i]);
             i++;
             return true;
         });
+        if (attrs->left() != nullptr) {
+            auto const &attr1 = static_cast<cleaf const *>(attrs->left())->sval();
+            if (attr1 == "variadic") {
+                auto const &name = static_cast<cleaf const *>(attrs->right()->left())->sval();
+                
+                // i..values.size()-1をrestとして配列化
+                vector<cvalue> rest(values.begin()+i, values.end());
+                clog::d("rest.size %zu", rest.size());
+
+                scopes_.back()->add_var(name, cvalue(rest));
+            }
+        }
 
         // 複文を実行
         res = eval_stats(stats, s);
-        if (res.has_sval()) {
-            clog::d("ret %s (%s)", res.name(), res.sval());
+        if (res.is_int()) {
+            clog::d("ret int (%d)", res.i());
+        } else if (res.is_str()) {
+            clog::d("ret str (%s)", res.s());
         } else {
-            clog::d("ret %s (%d)", res.name(), res.ival());
+            clog::d("ret unknown ()");
         }
         if (exit_fun_) {
             exit_fun_ = false;
@@ -491,7 +571,7 @@ cleaf hii_driver::eval_call(cnode const *node)
     return res;
 }
 
-cleaf hii_driver::eval_loop(cnode const *node)
+cvalue hii_driver::eval_loop(cnode const *node)
 {
     cnode const *id = node->left(); // nullable
     cnode const *arg1 = node->right()->left();
@@ -501,46 +581,51 @@ cleaf hii_driver::eval_loop(cnode const *node)
     assert(arg1 != nullptr);
     assert(stats != nullptr);
 
-    string cnt_name = (id != nullptr ? static_cast<cleaf const *>(id)->sval() : "cnt");
+    auto &&cnt_name = (id != nullptr ? static_cast<cleaf const *>(id)->sval() : "cnt");
 
     // loop(num|collection)のパラメータをloop(begin,end)に統一
-    // XXX なんでres_が頭についているのか忘れた
     bool const is_range = (arg2 != nullptr);
-    cleaf res_times, res_begin, res_end;
+
+    cvalue loop_times, loop_begin, loop_end;
     if (is_range) {
-        res_begin = eval(arg1);
-        res_end   = eval(arg2);
+        loop_begin = eval(arg1);
+        loop_end   = eval(arg2);
     } else {
-        res_times = eval(arg1);
+        loop_times = eval(arg1);
     }
     int num_begin, num_end;
     if (is_range) {
-        num_begin = res_begin.ival();
-        num_end   = res_end.ival();
+        num_begin = loop_begin.i();
+        num_end   = loop_end.i();
     } else {
-        num_begin = 1;
-        switch (res_times.op()) {
-        case OP_INT:
-            num_end = res_times.ival();
+        num_begin = 1;  // XXX ループ開始は0の方が良い？
+        switch (loop_times.type()) {
+        case cvalue::INTEGER:
+            num_end = loop_times.i();
             break;
-        case OP_STR:
-            num_end = res_times.sval().size();
+        case cvalue::STRING:
+            num_end = loop_times.s().size();  // 文字数をループ回数とする
+            break;
+        case cvalue::ARRAY:
+            num_end = loop_times.a().size();
             break;
         default:
             assert(0);
         }
     }
 
-    cleaf res;
+    cvalue res;
     for (int i = num_begin; i <= num_end; i++)
     {
         // ループカウンタを定義
-        cscope *s = new cscope();
-        if (is_range || res_times.op() == OP_INT) {
-            s->add_var(cnt_name, new cleaf(OP_INT, i));
-        } else {
+        cscope *s = new cscope();  // eval_stats側でdeleteされる
+        if (is_range || loop_times.is_int()) {
+            s->add_var(cnt_name, cvalue(i));
+        } else if (loop_times.is_str()) {
             // 文字列のn番目の文字をセット
-            s->add_var(cnt_name, new cleaf(OP_STR, res_times.sval().at(i-1)));
+            s->add_var(cnt_name, cvalue(loop_times.s().at(i-1)));
+        } else if (loop_times.is_ary()) {
+            s->add_var(cnt_name, loop_times.a().at(i-1));
         }
 
         res = eval_stats(stats, s);
@@ -549,14 +634,14 @@ cleaf hii_driver::eval_loop(cnode const *node)
         }
     }
 
-    return res;
+    return res;  // XXX 最後に実行した複文の値を返す
 }
 
-cleaf hii_driver::eval_op1(cnode const *node)
+cvalue hii_driver::eval_op1(cnode const *node)
 {
-    auto l_value = eval(node->left());
+    auto &&l_value = eval(node->left());
 
-    if (l_value.op() != OP_INT) {
+    if (!l_value.is_int()) {
         std::runtime_error("左辺が数値ではありません");
     }
 
@@ -564,92 +649,321 @@ cleaf hii_driver::eval_op1(cnode const *node)
     switch (node->op())
     {
     case OP_NEG:
-        val = -l_value.ival();
+        val = -l_value.i();
         break;
     default:
         std::logic_error("未定義の演算子です");
     }
-    cleaf res = cleaf(OP_INT, val);
-
-    return res;
+    return cvalue(val);
 }
 
-cleaf hii_driver::eval_op2(cnode const *node)
+cvalue hii_driver::eval_op2(cnode const *node)
 {
-    auto l_value = eval(node->left());
-    auto r_value = eval(node->right());
+    auto &&l_value = eval(node->left());
+    auto &&r_value = eval(node->right());
 
-    if (l_value.op() != OP_INT) {
-        std::runtime_error("左辺が数値ではありません");
-    }
-    if (r_value.op() != OP_INT) {
-        std::runtime_error("右辺が数値ではありません");
-    }
-
-    int val;
+    cvalue res;
     switch (node->op())
     {
     case OP_PLUS:
         // TODO オーバーフローチェック
-        val = l_value.ival() + r_value.ival();
+        // int + int -> int
+        // int + str -> str
+        // str + int -> str
+        // str + str -> str
+        if (l_value.is_int()) {
+            if (r_value.is_int()) {
+                // int + int
+            } else if (r_value.is_str()) {
+                // int + str
+                size_t idx = 0;
+                int r = std::stoi(r_value.s(), &idx);
+                if (idx < r_value.s().size()) {
+                    clog::e("右辺を数値に変換できません(rvalue=%s)", r_value.s().c_str());
+                    std::runtime_error("右辺を数値に変換できません");
+                }
+                res = cvalue(l_value.i() + r);
+            } else {
+                clog::e("右辺が数値または文字列ではありません");
+                std::runtime_error("右辺が数値または文字列ではありません");
+            }
+        } else if (l_value.is_str()) {
+            if (r_value.is_int()) {
+                // str + int
+                size_t idx = 0;
+                int l = std::stoi(l_value.s(), &idx);
+                if (idx < l_value.s().size()) {
+                    clog::e("左辺を数値に変換できません(rvalue=%s)", l_value.s().c_str());
+                    std::runtime_error("左辺を数値に変換できません");
+                }
+                res = cvalue(l + r_value.i());
+            } else if (r_value.is_str()) {
+                // str + str
+                res = cvalue(l_value.s() + r_value.s());
+            } else {
+                clog::e("右辺が数値または文字列ではありません");
+                std::runtime_error("右辺が数値または文字列ではありません");
+            }
+        } else {
+            clog::e("左辺が数値または文字列ではありません");
+            std::runtime_error("左辺が数値または文字列ではありません");
+        }
         break;
     case OP_MINUS:
-        val = l_value.ival() - r_value.ival();
+        if (!l_value.is_int()) {
+            clog::e("左辺が数値ではありません");
+            std::runtime_error("左辺が数値ではありません");
+        }
+        if (!r_value.is_int()) {
+            clog::e("右辺が数値ではありません");
+            std::runtime_error("右辺が数値ではありません");
+        }
+        res = cvalue(l_value.i() - r_value.i());
         break;
     case OP_TIMES:
-        val = l_value.ival() * r_value.ival();
+        if (!l_value.is_int()) {
+            clog::e("左辺が数値ではありません");
+            std::runtime_error("左辺が数値ではありません");
+        }
+        if (!r_value.is_int()) {
+            clog::e("右辺が数値ではありません");
+            std::runtime_error("右辺が数値ではありません");
+        }
+        res = cvalue(l_value.i() * r_value.i());
         break;
     case OP_DIVIDE:
-        // TODO 0除算エラーチェック
-        val = l_value.ival() / r_value.ival();
+        if (!l_value.is_int()) {
+            clog::e("左辺が数値ではありません");
+            std::runtime_error("左辺が数値ではありません");
+        }
+        if (!r_value.is_int()) {
+            clog::e("右辺が数値ではありません");
+            std::runtime_error("右辺が数値ではありません");
+        }
+        if (r_value.i() == 0) {
+            clog::e("0除算エラーです");
+            std::runtime_error("0除算エラーです");
+        }
+        res = cvalue(l_value.i() / r_value.i());
     case OP_MODULO:
-        // TODO 0除算エラーチェック, 負数チェック
-        val = l_value.ival() % r_value.ival();
+        if (!l_value.is_int()) {
+            clog::e("左辺が数値ではありません");
+            std::runtime_error("左辺が数値ではありません");
+        }
+        if (!r_value.is_int()) {
+            clog::e("右辺が数値ではありません");
+            std::runtime_error("右辺が数値ではありません");
+        }
+        if (r_value.i() == 0) {
+            clog::e("0除算エラーです");
+            std::runtime_error("0除算エラーです");
+        } else if (r_value.i() < 0) {
+            clog::e("負の数で割った余りを求めることはできません");
+            std::runtime_error("負の数で割った余りを求めることはできません");
+        }
+        res = cvalue(l_value.i() % r_value.i());
         break;
     case OP_EQ:
-        val = (l_value.ival() == r_value.ival() ? 1 : 0);
+        if (l_value.type() != r_value.type()) {
+            clog::e("右辺と左辺の型が異なります");
+            std::runtime_error("右辺と左辺の型が異なります");
+        }
+        switch (l_value.type()) {
+        case cvalue::INTEGER:
+            res = cvalue(l_value.i() == r_value.i() ? 1 : 0);
+            break;
+        case cvalue::STRING:
+            res = cvalue(l_value.s() == r_value.s() ? 1 : 0);
+            break;
+        default:
+            clog::e("比較不可能な型が指定されています");
+            std::runtime_error("比較不可能な型が指定されています");
+            break;
+        }
         break;
     case OP_NEQ:
-        val = (l_value.ival() != r_value.ival() ? 1 : 0);
+        if (l_value.type() != r_value.type()) {
+            clog::e("右辺と左辺の型が異なります");
+            std::runtime_error("右辺と左辺の型が異なります");
+        }
+        switch (l_value.type()) {
+        case cvalue::INTEGER:
+            res = cvalue(l_value.i() != r_value.i() ? 1 : 0);
+            break;
+        case cvalue::STRING:
+            res = cvalue(l_value.s() != r_value.s() ? 1 : 0);
+            break;
+        default:
+            clog::e("比較不可能な型が指定されています");
+            std::runtime_error("比較不可能な型が指定されています");
+            break;
+        }
         break;
     case OP_LT:
-        val = (l_value.ival() < r_value.ival() ? 1 : 0);
+        if (l_value.type() != r_value.type()) {
+            clog::e("右辺と左辺の型が異なります");
+            std::runtime_error("右辺と左辺の型が異なります");
+        }
+        switch (l_value.type()) {
+        case cvalue::INTEGER:
+            res = cvalue(l_value.i() < r_value.i() ? 1 : 0);
+            break;
+        default:
+            clog::e("比較不可能な型が指定されています");
+            std::runtime_error("比較不可能な型が指定されています");
+            break;
+        }
         break;
     case OP_LTEQ:
-        val = (l_value.ival() <= r_value.ival() ? 1 : 0);
+        if (l_value.type() != r_value.type()) {
+            clog::e("右辺と左辺の型が異なります");
+            std::runtime_error("右辺と左辺の型が異なります");
+        }
+        switch (l_value.type()) {
+        case cvalue::INTEGER:
+            res = cvalue(l_value.i() <= r_value.i() ? 1 : 0);
+            break;
+        default:
+            clog::e("比較不可能な型が指定されています");
+            std::runtime_error("比較不可能な型が指定されています");
+            break;
+        }
         break;
     case OP_GT:
-        val = (l_value.ival() > r_value.ival() ? 1 : 0);
+        if (l_value.type() != r_value.type()) {
+            clog::e("右辺と左辺の型が異なります");
+            std::runtime_error("右辺と左辺の型が異なります");
+        }
+        switch (l_value.type()) {
+        case cvalue::INTEGER:
+            res = cvalue(l_value.i() > r_value.i() ? 1 : 0);
+            break;
+        default:
+            clog::e("比較不可能な型が指定されています");
+            std::runtime_error("比較不可能な型が指定されています");
+            break;
+        }
         break;
     case OP_GTEQ:
-        val = (l_value.ival() >= r_value.ival() ? 1 : 0);
+        if (l_value.type() != r_value.type()) {
+            clog::e("右辺と左辺の型が異なります");
+            std::runtime_error("右辺と左辺の型が異なります");
+        }
+        switch (l_value.type()) {
+        case cvalue::INTEGER:
+            res = cvalue(l_value.i() >= r_value.i() ? 1 : 0);
+            break;
+        default:
+            clog::e("比較不可能な型が指定されています");
+            std::runtime_error("比較不可能な型が指定されています");
+            break;
+        }
         break;
     case OP_AND:
-        val = (l_value.ival() && r_value.ival() ? 1 : 0);
+        switch (l_value.type()) {
+        case cvalue::INTEGER:
+            res = cvalue(l_value.i() != 0 ? 1 : 0);
+            break;
+        case cvalue::STRING:
+            res = cvalue(l_value.s() != "" ? 1 : 0);
+            break;
+        case cvalue::ARRAY:
+            res = cvalue(l_value.a().size() != 0 ? 1 : 0);
+            break;
+        default:
+            clog::e("左辺に未知の型が指定されています(%d)", l_value.type());
+            std::logic_error("左辺に未知の型が指定されています");
+            break;
+        }
+        // 短絡評価 (左辺が真の場合のみ右辺を評価)
+        if (res.i() != 0) {
+            switch (r_value.type()) {
+            case cvalue::INTEGER:
+                res = cvalue(l_value.i() != 0 ? 1 : 0);
+                break;
+            case cvalue::STRING:
+                res = cvalue(l_value.s() != "" ? 1 : 0);
+                break;
+            case cvalue::ARRAY:
+                res = cvalue(l_value.a().size() != 0 ? 1 : 0);
+                break;
+            default:
+                clog::e("左辺に未知の型が指定されています(%d)", l_value.type());
+                std::logic_error("左辺に未知の型が指定されています");
+                break;
+            }
+        }
         break;
     case OP_OR:
-        val = (l_value.ival() || r_value.ival() ? 1 : 0);
+        switch (l_value.type()) {
+        case cvalue::INTEGER:
+            res = cvalue(l_value.i() != 0 ? 1 : 0);
+            break;
+        case cvalue::STRING:
+            res = cvalue(l_value.s() != "" ? 1 : 0);
+            break;
+        case cvalue::ARRAY:
+            res = cvalue(l_value.a().size() != 0 ? 1 : 0);
+            break;
+        default:
+            clog::e("左辺に未知の型が指定されています(%d)", l_value.type());
+            std::logic_error("左辺に未知の型が指定されています");
+            break;
+        }
+        // 短絡評価 (左辺が偽の場合のみ右辺を評価)
+        if (res.i() == 0) {
+            switch (r_value.type()) {
+            case cvalue::INTEGER:
+                res = cvalue(l_value.i() != 0 ? 1 : 0);
+                break;
+            case cvalue::STRING:
+                res = cvalue(l_value.s() != "" ? 1 : 0);
+                break;
+            case cvalue::ARRAY:
+                res = cvalue(l_value.a().size() != 0 ? 1 : 0);
+                break;
+            default:
+                clog::e("左辺に未知の型が指定されています(%d)", l_value.type());
+                std::logic_error("左辺に未知の型が指定されています");
+                break;
+            }
+        }
+        break;
+    case OP_ELEMENT:
+        // TODO 文字列にも[]演算子を適用可能にする
+        if (!l_value.is_ary()) {
+            clog::e("左辺が配列ではありません(type=%d)", l_value.type());
+            return cvalue();
+        }
+        if (!r_value.is_int()) {
+            clog::e("添字が数値ではありません");
+            return cvalue();
+        }
+        res = l_value.a().at(r_value.i());
         break;
     default:
         std::logic_error("未定義の演算子です");
     }
-    cleaf res = cleaf(OP_INT, val);
-
     return res;
 }
 
-cleaf hii_driver::eval_id(cnode const *node)
+cvalue hii_driver::eval_id(cnode const *node)
 {
-    auto &name = static_cast<cleaf const *>(node)->sval();
+    auto const &name = static_cast<cleaf const *>(node)->sval();
 
+    // 変数を探す
     auto b = find_if(scopes_.rbegin(), scopes_.rend(), 
         [&](cscope *s){ return s->has_var(name); });
    
     if (b != scopes_.rend()) {
+        // 変数の値を返す
         return (*b)->get_var(name);
     }
 
+    // 変数が見つからないので、以降は関数を探す
+
     // 組込関数かチェック
+    // XXX トップレベルスコープに予め組込関数を定義できれば、この処理は以降の処理と共通化できる
     if (name == "nop" ||
         name == "input" ||
         name == "p" ||
@@ -659,12 +973,11 @@ cleaf hii_driver::eval_id(cnode const *node)
         // call_stmtのノード構造に変換する
         cnode n(OP_CALL, new cleaf(*static_cast<cleaf const *>(node)), new clist(OP_EXPRS));
 
-        // 関数コールを評価
-        cleaf res = eval_call(&n);
-        return res;
+        // 関数コールを評価し、評価結果を返す
+        return eval_call(&n);
     }
 
-    // 変数が見つからない場合は関数を探す
+    // 関数を探す
     auto b2 = find_if(scopes_.rbegin(), scopes_.rend(), 
         [&](cscope *s){ return s->has_fun(name); });
    
@@ -673,39 +986,97 @@ cleaf hii_driver::eval_id(cnode const *node)
         cnode n(OP_CALL, new cleaf(*static_cast<cleaf const *>(node)), new clist(OP_EXPRS));
 
         // 関数コールを評価
-        cleaf res = eval_call(&n);
-        return res;
+        return eval_call(&n);
     }
 
-    std::fprintf(stderr, "E: 変数or関数%sが定義されていません\n", name.c_str());
+    clog::e("変数or関数%sが定義されていません\n", name.c_str());
     throw std::runtime_error("変数or関数が定義されていません");
 }
 
-cleaf hii_driver::eval_array(cnode const * node)
+cvalue hii_driver::eval_array(cnode const *node)
 {
-    cleaf res;
+    clist const &exprs = *static_cast<clist const *>(node->left());
 
-    clist const & exprs = *static_cast<clist const *>(node->left());
-
-    // TODO 配列リテラル(exprのリスト)を評価し、値に変換する
-    vector<cleaf> elements;
+    // 配列リテラル(exprs)を評価し、値に変換する
+    vector<cvalue> elements;
 
     exprs.each([&](cnode const &n){
         elements.push_back(eval(&n));
         return true;
     });
 
-    // cvalue ary(elements);
-    // return ary;
-
-    return res;
+    return cvalue(elements);
 }
 
-cleaf hii_driver::eval(cnode const *node)
+cvalue hii_driver::eval_str(cnode const *node)
+{
+    auto const &str = static_cast<cleaf const *>(node)->sval();
+
+    stringstream ss;
+    auto it = str.begin();
+    while (it != str.end())
+    {
+        if (*it != '\\') {
+            ss << *it;
+            it++;
+            continue;
+        }
+
+        it++;
+        if (it == str.end()) {
+            clog::i("文字列の末尾のエスケープ文字は削除されます");
+            break;
+        }
+
+        switch (*it)
+        {
+        case 't': ss << '\t'; it++; break;
+        case 'r': ss << '\r'; it++; break;
+        case 'n': ss << '\n'; it++; break;
+        case '{':
+            it++;
+            if (it == str.end()) {
+                ss << '{';
+                break;
+            }
+            {
+                stringstream id;
+                while (it != str.end() && *it != '}') {
+                    id << *it;
+                    it++;
+                }
+                if (id.str().size() == 0) {
+                    // '{'の直後に'}'が来た
+                    ss << "{}";
+                    break;
+                }
+                if (it == str.end()) {
+                    // '{'の後に'}'がなく文字列が終了した
+                    ss << '{' << id.str();
+                    break;
+                }
+                it++;
+                // TODO 変数or関数を評価
+                cleaf n(OP_ID, new string(id.str()));
+                cvalue v = eval_id(&n);
+                ss << v.to_string();
+            }
+            break;
+        default:
+            ss << *it;
+            it++;
+            break;
+        }
+    }
+
+    return cvalue(ss.str());
+
+    //return cvalue(str.sval());
+}
+
+cvalue hii_driver::eval(cnode const *node)
 {
     clog::d("eval %s", node->name());
-
-    cvalue v;
 
     switch (node->op())
     {
@@ -725,6 +1096,7 @@ cleaf hii_driver::eval(cnode const *node)
     case OP_ELSE:
         return eval(node->left());
     case OP_CALL:
+    case OP_CALLEXPR:
         return eval_call(node);
     case OP_LOOP:
         return eval_loop(node);
@@ -745,66 +1117,33 @@ cleaf hii_driver::eval(cnode const *node)
     case OP_GTEQ:
     case OP_AND:
     case OP_OR:
+    case OP_ELEMENT:
         return eval_op2(node);
-    case OP_CALLEXPR:
-        return eval_call(node);
     case OP_LCOMMENT:
-        return cleaf();
+        return cvalue();
     case OP_MCOMMENT:
         {
-            auto comments = static_cast<clist const *>(node);
+            auto const *comments = static_cast<clist const *>(node);
             comments->each([](cnode const &n) {
-                auto v = static_cast<cleaf const &>(n);
+                auto &&v = static_cast<cleaf const &>(n);
                 cout << v.sval() << endl;
                 return true;
             });
         }
-        return cleaf();
+        return cvalue();
     // 変数
     case OP_ID:
         return eval_id(node);
     // リテラル
     case OP_INT:
+        return cvalue(static_cast<cleaf const *>(node)->ival());
     case OP_STR:
-        return *static_cast<cleaf const *>(node);
+        return eval_str(node);
     case OP_ARRAY:
         return eval_array(node);
     default:
         std::fprintf(stderr, "評価方法が未定義です: op=%s\n", node->name());
         throw std::logic_error("評価方法が未定義です");
     }
-}
-
-/**
- * 意味解析＆実行
- */
-bool hii_driver::exec(const string &f)
-{
-    if (!parse(f)) return false;
-
-    // グローバルスコープを生成
-    // -> ASTのルート要素OP_STATSの評価時に生成される
-
-    // 名前解決
-    clog::d("### resolve names: starting ###");
-    resolve_names(*ast_);
-    clog::d("### resolve names: finished ###");
-
-    // 意味解析＆実行
-    clog::d("### eval ast: starting ###");
-    eval(ast_);
-    clog::d("### eval ast: finished ###");
-
-    if (exit_fun_) {
-        clog::e("関数の外でret文が使用されています");
-    }
-
-    // 後始末
-    assert(scopes_.empty());
-
-    delete ast_;
-    ast_ = nullptr;
-
-    return true;
 }
 

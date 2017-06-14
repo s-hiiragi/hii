@@ -4,7 +4,7 @@
 #include <map>
 #include <iostream> // for DEBUG
 #include "cnode.h"
-#include "cleaf.h"
+#include "cvalue.h"
 
 /*
  * スコープ内で定義された要素を管理
@@ -30,43 +30,47 @@ class cscope
 
   public:
     cscope() {}
-
-    virtual ~cscope() {
-        for (auto &e : vars_) {
-            // hii_driver::resolve_names()でnullptrを入れるためnullチェックが必要
-            if (e.second != nullptr) {
-                delete e.second;
-            }
-        }
-    }
+    virtual ~cscope() {}
 
     // valueはnewして渡すこと (所有権を渡すこと)
-    void add_var(std::string const &name, cleaf *value) {
+    void add_var(std::string const &name, cvalue const &value)
+    {
         vars_[name] = value;
     }
 
-    bool has_var(std::string const &name) {
-        return vars_.find(name) != vars_.end();
-    }
-
-    cleaf get_var(std::string const &name) const {
-        return *vars_.at(name);
-    }
-
-    void add_fun(std::string const &name, cnode const *fun_node) {
+    void add_fun(std::string const &name, cnode const *fun_node)
+    {
         funs_[name] = fun_node;
     }
 
-    bool has_fun(std::string const &name) {
+    bool has_var(std::string const &name)
+    {
+        return vars_.find(name) != vars_.end();
+    }
+
+    bool has_fun(std::string const &name)
+    {
         return funs_.find(name) != funs_.end();
     }
 
-    cnode const *get_fun(std::string const &name) const {
+    cvalue & get_var(std::string const &name)
+    {
+        return vars_.at(name);
+    }
+
+    cvalue const & get_var(std::string const &name) const
+    {
+        return vars_.at(name);
+    }
+
+    cnode const * get_fun(std::string const &name) const
+    {
         return funs_.at(name);
     }
 
     // for debug
-    void print() const {
+    void print() const
+    {
         using std::cout;
         using std::endl;
 
@@ -82,7 +86,7 @@ class cscope
                 cout << "2: key=" << ((*(++++vars_.begin())).first) << endl; // ==> (何も表示されない)
                 cout << "    ";
             }
-            for (auto const & e : vars_) {
+            for (auto &&e : vars_) {
                 cout << e.first << " ";
             }
         }
@@ -90,7 +94,7 @@ class cscope
 
         cout << "  funs: ";
         if (funs_.size() >= 1) {
-            for (auto const & e : funs_) {
+            for (auto &&e : funs_) {
                 cout << e.first << " ";
             }
         }
@@ -101,9 +105,9 @@ class cscope
 
   private:
     // 保存するもの
-    // 変数: exprノード
+    // 変数: cvalue
     // 関数: funノード(仮) ... 名前解決した情報を登録する必要がある?
-    std::map<std::string, cleaf *> vars_;
+    std::map<std::string, cvalue> vars_;
     std::map<std::string, cnode const *> funs_;
 };
 

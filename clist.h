@@ -31,15 +31,18 @@ class clist : public cnode
     clist(int op)
         : cnode(op, nullptr, nullptr) { group_ = NG_LIST; }
 
-    clist(int op, cnode * node)
+    clist(int op, cnode *node)
         : cnode(op, node, nullptr) { group_ = NG_LIST; }
 
-    clist(clist const & obj)
+    clist(clist const &obj)
         : cnode(obj) { group_ = NG_LIST; }
 
-    int add(cnode * node);
+    clist & add(cnode *node);
 
-    bool each(std::function<bool(cnode &)> const & fn);
-    bool each(std::function<bool(cnode const &)> const & fn) const;
+    bool each(std::function<bool(cnode &)> const &fn);
+    bool each(std::function<bool(cnode const &)> const &fn) const;
+
+    //bool each(std::function<bool(cnode &, int)> const &fn);
+    //bool each(std::function<bool(cnode const &, int)> const &fn) const;
 };
 
