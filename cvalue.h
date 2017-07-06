@@ -38,6 +38,32 @@ class cvalue
         copy_members(obj);
     }
 
+    cvalue(cvalue &&obj)
+        : type_(VOID)
+    {
+        switch (obj.type_) {
+        case VOID:
+            break;
+        case INTEGER:
+            type_ = INTEGER;
+            value_.i = obj.value_.i;
+            break;
+        case STRING:
+            type_ = STRING;
+            value_.s = obj.value_.s;
+            obj.value_.s = nullptr;
+            break;
+        case ARRAY:
+            type_ = ARRAY;
+            value_.a = obj.value_.a;
+            obj.value_.a = nullptr;
+            break;
+        default:
+            throw std::logic_error("invalid type");
+        }
+        obj.type_ = VOID;
+    }
+
     ~cvalue()
     {
         if (is_str()) delete value_.s;
@@ -83,7 +109,7 @@ class cvalue
     std::string to_string() const;
 
   private:
-    void copy_members(cvalue const & obj)
+    void copy_members(cvalue const &obj)
     {
         switch (type_)
         {
@@ -121,8 +147,8 @@ class cvalue
     type_t type_;
     union {
         int i;
-        std::string * s;
-        std::vector<cvalue> * a;
+        std::string *s;
+        std::vector<cvalue> *a;
     } value_;
 };
 

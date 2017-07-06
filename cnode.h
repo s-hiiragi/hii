@@ -27,7 +27,8 @@ typedef enum node_type_
 
     // 文
     OP_ASSIGN,
-//    OP_LIST,  // 未使用っぽい
+    OP_REASSIGN,
+    OP_LSASSIGN,
     OP_CALL,
     OP_IF,
     OP_ELIF,
@@ -35,6 +36,8 @@ typedef enum node_type_
     OP_FUN,
     OP_RET,
     OP_LOOP,
+    OP_CONT,
+    OP_BREAK,
 
     OP_EXPRS,
     OP_ARGS,
@@ -60,19 +63,25 @@ typedef enum node_type_
     // 関数コール式
     OP_CALLEXPR,
 
-    // コメント
-    OP_MCOMMENT,  // multi line comment
-    OP_LCOMMENT, // (single) line comment
+    // 配列の要素
+    OP_ELEMENT,
 
-    // 識別子
-    OP_ID,
+    // スライス
+    OP_SLICE,
 
     // リテラル
     OP_INT,
     OP_STR,
     OP_ARRAY,
 
-    OP_ELEMENT,
+    // 識別子
+    OP_ID,
+    OP_VAR,
+
+    // コメント
+    OP_LCOMMENT, // line comment
+    OP_MCOMMENT,  // multi line comment
+    OP_RCOMMENT, // range comment
 
     // アノテーション
     OP_ATTRS,

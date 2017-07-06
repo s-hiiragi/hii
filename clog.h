@@ -35,7 +35,7 @@ class clog
     template<class... Args>
     static void i(char const *format, Args const &... args)
     {
-        std::fprintf(stdout, "\e[01;32m");
+        std::fprintf(stdout, "\e[01;33m");
         fwriteln<'I'>(stdout, format, args...);
         std::fprintf(stdout, "\e[00m");
     }

@@ -62,6 +62,8 @@ const char * cnode::name() const
     case OP_NODE:     return "NODE";     break;
     case OP_STATS:    return "STATS";    break;
     case OP_ASSIGN:   return "ASSIGN";   break;
+    case OP_REASSIGN: return "REASSIGN"; break;
+    case OP_LSASSIGN: return "LSASSIGN"; break;
     case OP_CALL:     return "CALL";     break;
     case OP_IF:       return "IF";       break;
     case OP_ELIF:     return "ELIF";     break;
@@ -69,6 +71,8 @@ const char * cnode::name() const
     case OP_FUN:      return "FUN";      break;
     case OP_RET:      return "RET";      break;
     case OP_LOOP:     return "LOOP";     break;
+    case OP_CONT:     return "CONT";     break;
+    case OP_BREAK:    return "BREAK";    break;
     case OP_EXPRS:    return "EXPRS";    break;
     case OP_ARGS:     return "ARGS";     break;
     case OP_NEG:      return "NEG";      break;
@@ -86,13 +90,16 @@ const char * cnode::name() const
     case OP_AND:      return "AND";      break;
     case OP_OR:       return "OR";       break;
     case OP_CALLEXPR: return "CALLEXPR"; break;
-    case OP_MCOMMENT: return "MCOMMENT"; break;
     case OP_LCOMMENT: return "LCOMMENT"; break;
+    case OP_MCOMMENT: return "MCOMMENT"; break;
+    case OP_RCOMMENT: return "RCOMMENT"; break;
     case OP_ID:       return "ID";       break;
+    case OP_VAR:      return "VAR";      break;
     case OP_INT:      return "INT";      break;
     case OP_STR:      return "STR";      break;
     case OP_ARRAY:    return "ARRAY";    break;
     case OP_ELEMENT:  return "ELEMENT";  break;
+    case OP_SLICE:    return "SLICE";    break;
     case OP_ATTRS:    return "ATTRS";    break;
     case OP_EMPTY:    return "EMPTY";    break;
     default:          return "unknown";  break;

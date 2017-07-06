@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <iostream> // for DEBUG
+#include <utility>
 #include "cnode.h"
 #include "cvalue.h"
 
@@ -32,10 +33,9 @@ class cscope
     cscope() {}
     virtual ~cscope() {}
 
-    // valueはnewして渡すこと (所有権を渡すこと)
-    void add_var(std::string const &name, cvalue const &value)
+    void add_var(std::string const &name, cvalue const &value, bool writable)
     {
-        vars_[name] = value;
+        vars_[name] = std::make_pair(value, writable);
     }
 
     void add_fun(std::string const &name, cnode const *fun_node)
@@ -48,6 +48,11 @@ class cscope
         return vars_.find(name) != vars_.end();
     }
 
+    bool is_writable(std::string const &name)
+    {
+        return vars_.find(name) != vars_.end() && vars_[name].second == true;
+    }
+
     bool has_fun(std::string const &name)
     {
         return funs_.find(name) != funs_.end();
@@ -55,12 +60,12 @@ class cscope
 
     cvalue & get_var(std::string const &name)
     {
-        return vars_.at(name);
+        return vars_.at(name).first;
     }
 
     cvalue const & get_var(std::string const &name) const
     {
-        return vars_.at(name);
+        return vars_.at(name).first;
     }
 
     cnode const * get_fun(std::string const &name) const
@@ -78,16 +83,8 @@ class cscope
 
         cout << "  vars: ";
         if (vars_.size() >= 1) {
-            // tmp
-            if (vars_.size() >= 3) {
-                cout << endl;
-                cout << "0: key=" << ((*vars_.begin()).first) << endl;       // ==> c
-                cout << "1: key=" << ((*(++vars_.begin())).first) << endl;   // ==> i
-                cout << "2: key=" << ((*(++++vars_.begin())).first) << endl; // ==> (何も表示されない)
-                cout << "    ";
-            }
             for (auto &&e : vars_) {
-                cout << e.first << " ";
+                cout << (e.second.second ? "$" : "") << e.first << " ";
             }
         }
         cout << endl;
@@ -105,9 +102,10 @@ class cscope
 
   private:
     // 保存するもの
-    // 変数: cvalue
+    // 変数: cvalue, 変数フラグ
+    //   ids_とvars_にmapを分ける方法も考えられる
     // 関数: funノード(仮) ... 名前解決した情報を登録する必要がある?
-    std::map<std::string, cvalue> vars_;
+    std::map<std::string, std::pair<cvalue, bool>> vars_;
     std::map<std::string, cnode const *> funs_;
 };
 

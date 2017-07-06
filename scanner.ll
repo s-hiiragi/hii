@@ -28,12 +28,18 @@
 %option noyy_scan_string
 %option nounistd
 
+var    \$[a-zA-Z_][a-zA-Z_0-9]*
 id     [a-zA-Z_][a-zA-Z_0-9]*
 int    [1-9][0-9]*
+/*
+以下のようにすれば-1を単一のトークンとして扱える
+int    -?[1-9][0-9]*
+*/
 str    \"([^\\"]|\\.)*\"
 /*"*/
-blank  [ \t]
-lcmnt  #[^\n]*
+blank   [ \t]
+rcmnt   #\{\n(([^#][^\n]*|#[^}][^\n]*|#)?\n)*#\}
+lcmnt   #[^\n]*
 
 %%
 %{
@@ -42,25 +48,32 @@ lcmnt  #[^\n]*
     std::string string_buffer;
 %}
 
-"if"    return token::TK_IF;
-"elif"  return token::TK_ELIF;
-"else"  return token::TK_ELSE;
-"end"   return token::TK_END;
-"fun"   return token::TK_FUN;
-"ret"   return token::TK_RET;
-"loop"  return token::TK_LOOP;
+"if"     return token::TK_IF;
+"elif"   return token::TK_ELIF;
+"else"   return token::TK_ELSE;
+"end"    return token::TK_END;
+"fun"    return token::TK_FUN;
+"ret"    return token::TK_RET;
+"loop"   return token::TK_LOOP;
+"cont"   return token::TK_CONT;
+"break"  return token::TK_BREAK;
 
-"..."   return token::TK_TDOT;
-".."    return token::TK_DDOT;
-"=="    return token::TK_EQ;
-"!="    return token::TK_NEQ;
-"<="    return token::TK_LTEQ;
-">="    return token::TK_GTEQ;
-"and"   return token::TK_AND;
-"or"    return token::TK_OR;
+":="     return token::TK_REASSIGN;
+"..."    return token::TK_TDOT;
+".."     return token::TK_DDOT;
+"=="     return token::TK_EQ;
+"!="     return token::TK_NEQ;
+"<="     return token::TK_LTEQ;
+">="     return token::TK_GTEQ;
+"and"    return token::TK_AND;
+"or"     return token::TK_OR;
 [-+*/%=()\n,<>\[\]@?]  return yy::parser::token_type(yytext[0]);
 
 {blank}+        ;
+{rcmnt}         {
+                    yylval->sval = new std::string(yytext);
+                    return token::TK_RCMNT;
+                }
 {lcmnt}         {
                     yylval->sval = new std::string(yytext);
                     return token::TK_LCMNT;
@@ -81,6 +94,10 @@ lcmnt  #[^\n]*
                     // TODO ""を除去する
                     yylval->sval = new std::string(yytext, 1, std::strlen(yytext)-2);
                     return token::TK_STR;
+                }
+{var}           {
+                    yylval->sval = new std::string(yytext, 1, std::strlen(yytext)-1);
+                    return token::TK_VAR;
                 }
 {id}            {
                     yylval->sval = new std::string(yytext);

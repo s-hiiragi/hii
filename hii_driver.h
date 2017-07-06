@@ -35,15 +35,33 @@ class hii_driver
 
     bool exec(std::string const & file);
 
-    bool parse(std::string const &file);
+  // for parser
     void set_ast(cnode *ast);
+
+    void error(char const *message)
+    {
+        std::fprintf(stderr, "%s", message);
+    }
+
+    //void error(const std::string& m, const std::string& text = "");
+    template<class... Args>
+    void error(char const *format, Args const &... args)
+    {
+        std::fprintf(stderr, format, args...);
+    }
+
+  private:
+    void scan_begin();
+    void scan_end();
+
+    bool parse(std::string const &file);
 
     bool resolve_names(cnode &node);
 
     bool def_var(cnode const *node);
     bool def_fun(cnode const *node);
 
-    cvalue eval_stats(cnode const *node, cscope *scope = nullptr);
+    cvalue eval_stats(cnode const *node);
     cvalue eval_assign(cnode const *node);
     cvalue eval_fun(cnode const *node);
     cvalue eval_ret(cnode const *node);
@@ -57,37 +75,20 @@ class hii_driver
     cvalue eval_str(cnode const *node);
     cvalue eval(cnode const *node);
     
-    // Error handling.
-    void error(char const *message)
-    {
-        std::fprintf(stderr, "%s", message);
-    }
-
-    //void error(const std::string& m, const std::string& text = "");
-    template<class... Args>
-    void error(char const *format, Args const &... args)
-    {
-        std::fprintf(stderr, format, args...);
-    }
-
     // for debug
     void print_scopes()
     {
         using std::cout;
         using std::endl;
-        cout << "D: put scopes (size=" << scopes_.size() << ")" << endl;
+        cout << "D: print scopes (size=" << scopes_.size() << ")" << endl;
         cout << "  --" << endl;
         for (auto &&s : scopes_) {
             s.print();
         }
     }
 
-  private:
-    void scan_begin();
-    void scan_end();
-
     std::string file_;
-    cnode * ast_ = nullptr;
+    cnode *ast_ = nullptr;
 
     // 実行時情報
     std::vector<cscope> scopes_;
