@@ -14,7 +14,8 @@ class hii_driver;
 #define YY_DECL                                    \
     yy::parser::token_type                         \
     yylex(yy::parser::semantic_type* yylval,       \
-         hii_driver& driver)
+          yy::parser::location_type* location,     \
+          hii_driver& driver)
 
 YY_DECL;
 
@@ -63,15 +64,20 @@ class hii_driver
 
     cvalue eval_stats(cnode const *node);
     cvalue eval_assign(cnode const *node);
+    cvalue eval_reassign(cnode const *node);
+    cvalue eval_lsassign(cnode const *node);
     cvalue eval_fun(cnode const *node);
     cvalue eval_ret(cnode const *node);
     cvalue eval_if(cnode const *node);
     cvalue eval_call(cnode const *node);
     cvalue eval_loop(cnode const *node);
+    cvalue eval_cont(cnode const *node);
+    cvalue eval_break(cnode const *node);
     cvalue eval_op1(cnode const *node);
     cvalue eval_op2(cnode const *node);
     cvalue eval_id(cnode const *node);
     cvalue eval_array(cnode const *node);
+    cvalue eval_slice(cnode const *node);
     cvalue eval_str(cnode const *node);
     cvalue eval(cnode const *node);
     
@@ -93,6 +99,8 @@ class hii_driver
     // 実行時情報
     std::vector<cscope> scopes_;
     bool exit_fun_ = false;
+    bool cont_loop_ = false;
+    bool break_loop_ = false;
     //std::map<std::string, cnode *> builtin_functions_;
 };
 
