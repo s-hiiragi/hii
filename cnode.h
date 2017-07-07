@@ -29,6 +29,8 @@ typedef enum node_type_
     OP_ASSIGN,
     OP_REASSIGN,
     OP_LSASSIGN,
+    OP_INC,
+    OP_DEC,
     OP_CALL,
     OP_IF,
     OP_ELIF,

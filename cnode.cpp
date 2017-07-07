@@ -64,6 +64,8 @@ const char * cnode::name() const
     case OP_ASSIGN:   return "ASSIGN";   break;
     case OP_REASSIGN: return "REASSIGN"; break;
     case OP_LSASSIGN: return "LSASSIGN"; break;
+    case OP_INC:      return "INC";      break;
+    case OP_DEC:      return "DEC";      break;
     case OP_CALL:     return "CALL";     break;
     case OP_IF:       return "IF";       break;
     case OP_ELIF:     return "ELIF";     break;

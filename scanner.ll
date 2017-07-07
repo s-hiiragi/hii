@@ -59,6 +59,9 @@ lcmnt   #[^\n]*
 "break"  return token::TK_BREAK;
 
 ":="     return token::TK_REASSIGN;
+"++"     return token::TK_INC;
+"--"     return token::TK_DEC;
+
 "..."    return token::TK_TDOT;
 ".."     return token::TK_DDOT;
 "=="     return token::TK_EQ;
@@ -67,7 +70,7 @@ lcmnt   #[^\n]*
 ">="     return token::TK_GTEQ;
 "and"    return token::TK_AND;
 "or"     return token::TK_OR;
-[-+*/%=()\n,<>\[\]@?]  return yy::parser::token_type(yytext[0]);
+[-+*/%=()\n,<>\[\]@?:]  return yy::parser::token_type(yytext[0]);
 
 {blank}+        ;
 {rcmnt}         {

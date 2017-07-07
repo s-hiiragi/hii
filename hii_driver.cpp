@@ -504,6 +504,54 @@ cvalue hii_driver::eval_lsassign(cnode const *node)
     return cvalue();
 }
 
+cvalue hii_driver::eval_op1stmt(cnode const *node)
+{
+    auto const &varname = static_cast<cleaf const *>(node->left())->sval();
+
+    clog::d("op1stmt name=%s", varname.c_str());
+
+    // 変数を取得
+
+    bool defined = false;
+    auto it = scopes_.rbegin();
+    for (; it != scopes_.rend(); it++) {
+        if (it->has_var(varname)) {
+            defined = true;
+            break;
+        }
+    }
+    if (!defined) {
+        clog::e("変数%sは定義されていません", varname.c_str());
+        return cvalue();
+    }
+    if (!it->is_writable(varname)) {
+        clog::e("%sは定数のため代入できません", varname.c_str());
+        return cvalue();
+    }
+
+    auto &var = it->get_var(varname);
+    
+    if (!var.is_int()) {
+        clog::e("変数%sは数値型ではないため計算できません", varname.c_str());
+        return cvalue();
+    }
+
+    int res;
+    switch (node->op())
+    {
+    case OP_INC:
+        res = var.i() + 1;
+        it->add_var(varname, cvalue(res), true);
+        break;
+    case OP_DEC:
+        res = var.i() - 1;
+        it->add_var(varname, cvalue(res), true);
+        break;
+    }
+
+    return cvalue();
+}
+
 cvalue hii_driver::eval_fun(cnode const *node)
 {
     if (!def_fun(node)) {
@@ -1193,7 +1241,7 @@ cvalue hii_driver::eval_slice(cnode const *node)
     cvalue start_value;
     cvalue end_value;
 
-    if (start_expr != nullptr) {
+    if (start_expr == nullptr) {
         start_value = cvalue(0);
     } else {
         start_value = eval(start_expr);
@@ -1221,12 +1269,16 @@ cvalue hii_driver::eval_slice(cnode const *node)
         }
     }
 
+    clog::d("start=%d, end=%d", start_value.i(), end_value.i());
+
     cvalue res;
     if (start_value.i() <= end_value.i()) {
-        res = cvalue(vector<cvalue>(array.begin() + start_value.i(), array.begin() + end_value.i()));
+        res = cvalue(vector<cvalue>(array.begin() + start_value.i(), array.begin() + end_value.i() + 1));
     } else {
-        res = cvalue(vector<cvalue>(array.rbegin() + (array.size() - 1 + start_value.i()),
-            array.rbegin() + (array.size() - 1 + end_value.i())));
+        int rstart = array.size() - 1 - start_value.i();
+        int rend   = array.size() - 1 - end_value.i();
+        clog::d("rstart=%d, rend=%d", rstart, rend);
+        res = cvalue(vector<cvalue>(array.rbegin() + rstart, array.rbegin() + rend + 1));
     }
 
     return res;
@@ -1386,6 +1438,9 @@ cvalue hii_driver::eval(cnode const *node)
         return eval_reassign(node);
     case OP_LSASSIGN:
         return eval_lsassign(node);
+    case OP_INC:
+    case OP_DEC:
+        return eval_op1stmt(node);
     case OP_FUN:
         return eval_fun(node);
     case OP_RET:

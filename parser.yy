@@ -59,6 +59,8 @@
 %token          TK_CONT             "cont"
 %token          TK_BREAK            "break"
 %token          TK_REASSIGN         ":="
+%token          TK_INC              "++"
+%token          TK_DEC              "--"
 %token          TK_TDOT             "..."
 %token          TK_DDOT             ".."
 %token          TK_EQ               "=="
@@ -74,6 +76,7 @@
 %type <node>    assign_stmt
 %type <node>    reassign_stmt
 %type <node>    lsassign_stmt
+%type <node>    op1_stmt
 %type <node>    if_stmt
 %type <node>    elifs
 %type <node>    fun_stmt
@@ -107,6 +110,7 @@
 %destructor { delete $$; } assign_stmt
 %destructor { delete $$; } reassign_stmt
 %destructor { delete $$; } lsassign_stmt
+%destructor { delete $$; } op1_stmt
 %destructor { delete $$; } if_stmt
 %destructor { delete $$; } elifs
 %destructor { delete $$; } fun_stmt
@@ -149,6 +153,7 @@ stat    : comment                       { $$ = $1; }
         | assign_stmt '\n'              { $$ = $1; }
         | reassign_stmt '\n'            { $$ = $1; }
         | lsassign_stmt '\n'            { $$ = $1; }
+        | op1_stmt '\n'                 { $$ = $1; }
         | if_stmt '\n'                  { $$ = $1; }
         | fun_stmt '\n'                 { $$ = $1; }
         | ret_stmt '\n'                 { $$ = $1; }
@@ -169,6 +174,10 @@ reassign_stmt : var ":=" expr           { $$ = new cnode(OP_REASSIGN, $1, $3); }
               ;
 
 lsassign_stmt : var '[' expr ']' '=' expr { $$ = new cnode(OP_LSASSIGN, $1, new cnode(OP_NODE, $3, $6)); }
+
+op1_stmt    : var "++"                  { $$ = new cnode(OP_INC, $1); }
+            | var "--"                  { $$ = new cnode(OP_DEC, $1); }
+            ;
 
 if_stmt     : "if" expr '\n' stats elifs "end"  { $$ = new cnode(OP_IF, $2, new cnode(OP_NODE, $4, $5)); }
             ;
