@@ -52,6 +52,8 @@
 %token          TK_IF               "if"
 %token          TK_ELIF             "elif"
 %token          TK_ELSE             "else"
+%token          TK_SW               "sw"
+%token          TK_CASE             "case"
 %token          TK_END              "end"
 %token          TK_FUN              "fun"
 %token          TK_RET              "ret"
@@ -79,6 +81,9 @@
 %type <node>    op1_stmt
 %type <node>    if_stmt
 %type <node>    elifs
+%type <node>    sw_stmt
+%type <list>    swcases
+%type <node>    swcase
 %type <node>    fun_stmt
 %type <node>    ret_stmt
 %type <node>    call_stmt
@@ -113,6 +118,9 @@
 %destructor { delete $$; } op1_stmt
 %destructor { delete $$; } if_stmt
 %destructor { delete $$; } elifs
+%destructor { delete $$; } sw_stmt
+%destructor { delete $$; } swcases
+%destructor { delete $$; } swcase
 %destructor { delete $$; } fun_stmt
 %destructor { delete $$; } ret_stmt
 %destructor { delete $$; } call_stmt
@@ -142,6 +150,7 @@
 unit    : stats                         { driver.set_ast($1); }
         ;
 
+/* Note: 空文をノードにしないためにstatではなくstatsで空文を処理している */
 stats   : '\n'                          { $$ = new clist(OP_STATS); }
         | stat                          { $$ = new clist(OP_STATS, $1); }
         | stats '\n'                    { $$ = $1; }
@@ -155,6 +164,7 @@ stat    : comment                       { $$ = $1; }
         | lsassign_stmt '\n'            { $$ = $1; }
         | op1_stmt '\n'                 { $$ = $1; }
         | if_stmt '\n'                  { $$ = $1; }
+        | sw_stmt '\n'                  { $$ = $1; }
         | fun_stmt '\n'                 { $$ = $1; }
         | ret_stmt '\n'                 { $$ = $1; }
         | call_stmt '\n'                { $$ = $1; }
@@ -163,20 +173,20 @@ stat    : comment                       { $$ = $1; }
         | break_stmt '\n'               { $$ = $1; }
         ;
 
-comment     : lcmnt '\n'                { $$ = new clist(OP_MCOMMENT, $1); }
-            | comment lcmnt '\n'        { $1->add($2); $$ = $1; }
+comment     : lcmnt '\n'                    { $$ = new clist(OP_MCOMMENT, $1); }
+            | comment lcmnt '\n'            { $1->add($2); $$ = $1; }
             ;
 
-assign_stmt : idvar '=' expr            { $$ = new cnode(OP_ASSIGN, $1, $3); }
+assign_stmt : idvar '=' expr                { $$ = new cnode(OP_ASSIGN, $1, $3); }
             ;
 
-reassign_stmt : var ":=" expr           { $$ = new cnode(OP_REASSIGN, $1, $3); }
+reassign_stmt : var ":=" expr               { $$ = new cnode(OP_REASSIGN, $1, $3); }
               ;
 
-lsassign_stmt : var '[' expr ']' '=' expr { $$ = new cnode(OP_LSASSIGN, $1, new cnode(OP_NODE, $3, $6)); }
+lsassign_stmt : var '[' expr ']' '=' expr   { $$ = new cnode(OP_LSASSIGN, $1, new cnode(OP_NODE, $3, $6)); }
 
-op1_stmt    : var "++"                  { $$ = new cnode(OP_INC, $1); }
-            | var "--"                  { $$ = new cnode(OP_DEC, $1); }
+op1_stmt    : var "++"                      { $$ = new cnode(OP_INC, $1); }
+            | var "--"                      { $$ = new cnode(OP_DEC, $1); }
             ;
 
 if_stmt     : "if" expr '\n' stats elifs "end"  { $$ = new cnode(OP_IF, $2, new cnode(OP_NODE, $4, $5)); }
@@ -185,6 +195,19 @@ if_stmt     : "if" expr '\n' stats elifs "end"  { $$ = new cnode(OP_IF, $2, new 
 elifs       : %empty                        { $$ = nullptr; }
             | "elif" expr '\n' stats elifs  { $$ = new cnode(OP_ELIF, $2, new cnode(OP_NODE, $4, $5)); }
             | "else" '\n' stats             { $$ = new cnode(OP_ELSE, $3); }
+            ;
+
+sw_stmt     : "sw" expr '\n' swcases "end"  { $$ = new cnode(OP_SW, $2, $4); }
+            ;
+
+swcases     : swcase                        { $$ = new clist(OP_SWCASES, $1); }
+            | swcases swcase                { $1->add($2); $$ = $1; }
+            ;
+
+swcase      : "case" expr '\n' stats        { $$ = new cnode(OP_SWCASE, $2, $4); }
+            | "case" expr ':' stats         { $$ = new cnode(OP_SWCASE, $2, $4); }
+            | "else" '\n' stats             { $$ = new cnode(OP_SWELSE, nullptr, $3); }
+            | "else" ':' stats              { $$ = new cnode(OP_SWELSE, nullptr, $3); }
             ;
 
 /*

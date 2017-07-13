@@ -1,6 +1,6 @@
 PROG     = hii
 OUT_DIR  = out
-CPPFLAGS = 
+CPPFLAGS = -DYYERROR_VERBOSE
 CXXFLAGS = -std=c++11
 
 SRCS       = $(wildcard *.cpp)

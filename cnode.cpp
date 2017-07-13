@@ -70,6 +70,9 @@ const char * cnode::name() const
     case OP_IF:       return "IF";       break;
     case OP_ELIF:     return "ELIF";     break;
     case OP_ELSE:     return "ELSE";     break;
+    case OP_SW:       return "SW";       break;
+    case OP_SWCASES:  return "SWCASES";  break;
+    case OP_SWCASE:   return "SWCASE";   break;
     case OP_FUN:      return "FUN";      break;
     case OP_RET:      return "RET";      break;
     case OP_LOOP:     return "LOOP";     break;

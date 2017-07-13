@@ -2,6 +2,7 @@
 #define HII_DRIVER_H_
 
 #include <string>
+#include <vector>
 #include <map>
 #include "parser.hh"
 #include "cnode.h"
@@ -34,7 +35,7 @@ class hii_driver
     hii_driver() {}
     virtual ~hii_driver() {}
 
-    bool exec(std::string const & file);
+    bool exec(std::string const &file, std::vector<std::string> &args);
 
   // for parser
     void set_ast(cnode *ast);
@@ -66,9 +67,11 @@ class hii_driver
     cvalue eval_assign(cnode const *node);
     cvalue eval_reassign(cnode const *node);
     cvalue eval_lsassign(cnode const *node);
+    cvalue eval_op1stat(cnode const *node);
     cvalue eval_fun(cnode const *node);
     cvalue eval_ret(cnode const *node);
     cvalue eval_if(cnode const *node);
+    cvalue eval_sw(cnode const *node);
     cvalue eval_call(cnode const *node);
     cvalue eval_loop(cnode const *node);
     cvalue eval_cont(cnode const *node);

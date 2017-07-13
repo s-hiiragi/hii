@@ -51,6 +51,8 @@ lcmnt   #[^\n]*
 "if"     return token::TK_IF;
 "elif"   return token::TK_ELIF;
 "else"   return token::TK_ELSE;
+"sw"     return token::TK_SW;
+"case"   return token::TK_CASE;
 "end"    return token::TK_END;
 "fun"    return token::TK_FUN;
 "ret"    return token::TK_RET;
