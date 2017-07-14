@@ -854,9 +854,9 @@ cvalue hii_driver::eval_loop(cnode const *node)
     int num_begin, num_end;
     if (is_range) {
         num_begin = loop_begin.i();
-        num_end   = loop_end.i();
+        num_end   = loop_end.i() + 1;
     } else {
-        num_begin = 1;  // XXX ループ開始は0の方が良い？
+        num_begin = 0;  // XXX ループ開始は0の方が良い？
         switch (loop_times.type()) {
         case cvalue::INTEGER:
             num_end = loop_times.i();
@@ -873,7 +873,7 @@ cvalue hii_driver::eval_loop(cnode const *node)
     }
 
     cvalue res;
-    for (int i = num_begin; i <= num_end; i++)
+    for (int i = num_begin; i < num_end; i++)
     {
         // ループカウンタを定義
         cscope s;
@@ -881,9 +881,9 @@ cvalue hii_driver::eval_loop(cnode const *node)
             s.add_var(cnt_name, cvalue(i), false);
         } else if (loop_times.is_str()) {
             // 文字列のn番目の文字をセット
-            s.add_var(cnt_name, cvalue(string(1, loop_times.s().at(i-1))), false);
+            s.add_var(cnt_name, cvalue(string(1, loop_times.s().at(i))), false);
         } else if (loop_times.is_ary()) {
-            s.add_var(cnt_name, loop_times.a().at(i-1), false);
+            s.add_var(cnt_name, loop_times.a().at(i), false);
         }
 
         scopes_.push_back(s);
@@ -905,7 +905,6 @@ cvalue hii_driver::eval_loop(cnode const *node)
                     clog::i("cont文に指定されたループカウンタ値(%d)が%d..%d+1の範囲外です", res.i(), num_begin, num_end);
                 }
                 i = res.i() - 1;
-                clog::i("i=%d\n", i);
             }
 
             cont_loop_ = false;

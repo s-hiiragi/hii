@@ -183,11 +183,27 @@ assign_stmt : idvar '=' expr                { $$ = new cnode(OP_ASSIGN, $1, $3);
 reassign_stmt : var ":=" expr               { $$ = new cnode(OP_REASSIGN, $1, $3); }
               ;
 
-lsassign_stmt : var '[' expr ']' '=' expr   { $$ = new cnode(OP_LSASSIGN, $1, new cnode(OP_NODE, $3, $6)); }
+lsassign_stmt : var '[' expr ']' '=' expr          { $$ = new cnode(OP_LSASSIGN, $1, new cnode(OP_NODE, $3, $6)); }
+              ;
+/*
+lsassign_stmt : array_var_elem '=' expr          { $$ = new cnode(OP_LSASSIGN, $1, $3); }
+              ;
+*/
 
 op1_stmt    : var "++"                      { $$ = new cnode(OP_INC, $1); }
             | var "--"                      { $$ = new cnode(OP_DEC, $1); }
             ;
+
+/*
+op1_stmt    : var "++"                      { $$ = new cnode(OP_INC, $1); }
+            | var "--"                      { $$ = new cnode(OP_DEC, $1); }
+            | array_var_elem "++"                { $$ = new cnode(OP_INC, $1); }
+            | array_var_elem "--"                { $$ = new cnode(OP_DEC, $1); }
+            ;
+
+array_var_elem : var '[' expr ']'              { $$ = new cnode(OP_ARRAY_VAR_ELEM, $1, $3); }
+            ;
+*/
 
 if_stmt     : "if" expr '\n' stats elifs "end"  { $$ = new cnode(OP_IF, $2, new cnode(OP_NODE, $4, $5)); }
             ;
