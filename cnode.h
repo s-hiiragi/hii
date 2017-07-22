@@ -28,7 +28,6 @@ typedef enum node_type_
     // 文
     OP_ASSIGN,
     OP_REASSIGN,
-    OP_LSASSIGN,
     OP_INC,
     OP_DEC,
     OP_CALL,
@@ -86,6 +85,7 @@ typedef enum node_type_
 
     // コメント
     OP_LCOMMENT, // line comment
+    OP_TCOMMENT, // tail comment
     OP_MCOMMENT,  // multi line comment
     OP_RCOMMENT, // range comment
 

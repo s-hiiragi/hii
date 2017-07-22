@@ -173,7 +173,10 @@ bool hii_driver::resolve_names(cnode &node)
         case OP_REASSIGN:
             {
                 // 変数の定義チェック
-                auto const &name = static_cast<cleaf &>(*n.left()).sval();
+                auto const &name = n.left()->op() == OP_VAR ?
+                    static_cast<cleaf *>(n.left())->sval() :
+                    static_cast<cleaf *>(n.left()->left())->sval();
+                
                 clog::d("on_enter: %s %s", n.name(), name.c_str());
                 
                 if (!scopes.back().has_var(name)) {
@@ -423,48 +426,16 @@ cvalue hii_driver::eval_assign(cnode const *node)
 
 cvalue hii_driver::eval_reassign(cnode const *node)
 {
-    auto const &name = static_cast<cleaf const *>(node->left())->sval();
+    auto const *lhs = node->left();
     auto const *expr = node->right();
 
-    clog::d("reassign name=%s", name.c_str());
+    auto const &varname = (lhs->op() == OP_VAR) ?
+        static_cast<cleaf const *>(lhs)->sval() :
+        static_cast<cleaf const *>(lhs->left())->sval();
+
+    clog::d("reassign name=%s", varname.c_str());
 
     // 変数を探す
-    bool defined = false;
-    auto it = scopes_.rbegin();
-    for (; it != scopes_.rend(); it++) {
-        if (it->has_var(name)) {
-            defined = true;
-            break;
-        }
-    }
-    if (!defined) {
-        clog::e("変数%sは定義されていません", name.c_str());
-        return cvalue();
-    }
-    if (!it->is_writable(name)) {
-        clog::e("%sは定数のため代入できません", name.c_str());
-        return cvalue();
-    }
-
-    // 式を評価
-    cvalue val = eval(expr);
-
-    // 変数の値を上書き
-    it->add_var(name, val, true);
-
-    return cvalue();
-}
-
-cvalue hii_driver::eval_lsassign(cnode const *node)
-{
-    auto &&varname = static_cast<cleaf const *>(node->left())->sval();
-    auto const *index_expr = node->right()->left();
-    auto const *value_expr = node->right()->right();
-
-    clog::d("lsassign name=%s", varname.c_str());
-
-    // 変数を取得
-
     bool defined = false;
     auto it = scopes_.rbegin();
     for (; it != scopes_.rend(); it++) {
@@ -484,42 +455,48 @@ cvalue hii_driver::eval_lsassign(cnode const *node)
 
     auto &var = it->get_var(varname);
 
-    // 配列型変数かチェック
-    if (!var.is_ary()) {
-        clog::e("%sは配列型変数ではありません", varname.c_str());
-        return cvalue();
+    if (lhs->op() == OP_VAR) {
+        // 式を評価
+        cvalue val = eval(expr);
+
+        // 変数の値を上書き
+        it->add_var(varname, val, true);
+    } else {
+        // 配列型変数かチェック
+        if (!var.is_ary()) {
+            clog::e("%sは配列型変数ではありません", varname.c_str());
+            return cvalue();
+        }
+
+        // 添字の評価
+        cvalue index = eval(lhs->right());
+
+        // 添字の型チェック
+
+        // 添字の範囲チェック
+        if (index.i() < 0 || var.a().size() <= index.i()) {
+            clog::e("添字(%d)が配列(0..%zu)の範囲外です", index.i(), var.a().size());
+            return cvalue();
+        }
+
+        // 式を評価
+        cvalue val = eval(expr);
+
+        // XXX 配列の型と値の型の比較
+        // ==> 現状では配列型が要素の型を保持していないため比較できない
+
+        // 要素の変更
+        it->get_var(varname).a().at(index.i()) = val;
     }
-
-    // 添字の評価
-    cvalue index = eval(index_expr);
-
-    // 添字の型チェック
-    if (!index.is_int()) {
-        clog::e("添字の式の型(%s)が数値ではありません", index.type_name().c_str());
-        return cvalue();
-    }
-
-    // 添字のオーバーフローチェック
-    if (index.i() < 0 || var.a().size() <= index.i()) {
-        clog::e("添字(%d)が配列(0..%zu)の範囲外です", index.i(), var.a().size());
-        return cvalue();
-    }
-
-    // 値の評価
-    cvalue value = eval(value_expr);
-
-    // XXX 配列の型と値の型の比較
-    // ==> 現状では配列型が要素の型を保持していないため比較できない
-
-    // 要素の変更
-    var.a().at(index.i()) = value;
 
     return cvalue();
 }
 
 cvalue hii_driver::eval_op1stat(cnode const *node)
 {
-    auto const &varname = static_cast<cleaf const *>(node->left())->sval();
+    auto const &varname = node->left()->op() == OP_VAR ?
+        static_cast<cleaf const *>(node->left())->sval() :
+        static_cast<cleaf const *>(node->left()->left())->sval();
 
     clog::d("op1stat name=%s", varname.c_str());
 
@@ -543,23 +520,60 @@ cvalue hii_driver::eval_op1stat(cnode const *node)
     }
 
     auto &var = it->get_var(varname);
-    
-    if (!var.is_int()) {
-        clog::e("変数%sは数値型ではないため計算できません", varname.c_str());
+
+    if (!var.is_int() && !var.is_ary()) {
+        clog::e("変数%sは数値型または配列型ではないため計算できません", varname.c_str());
         return cvalue();
     }
 
-    int res;
-    switch (node->op())
-    {
-    case OP_INC:
-        res = var.i() + 1;
-        it->add_var(varname, cvalue(res), true);
-        break;
-    case OP_DEC:
-        res = var.i() - 1;
-        it->add_var(varname, cvalue(res), true);
-        break;
+    if (var.is_int()) {
+        int res;
+        switch (node->op())
+        {
+        case OP_INC:
+            res = var.i() + 1;
+            it->add_var(varname, cvalue(res), true);
+            break;
+        case OP_DEC:
+            res = var.i() - 1;
+            it->add_var(varname, cvalue(res), true);
+            break;
+        }
+    } else {
+        // 添字が指定されているかチェック
+        if (node->left()->op() != OP_ELEMENT) {
+            clog::e("添字が指定されていません");
+            return cvalue();
+        }
+
+        // 添字を評価
+        auto &&index = eval(node->left()->right());
+
+        // 添字の型をチェック
+        if (!index.is_int()) {
+            clog::e("添字の型が数値型ではありません");
+            return cvalue();
+        }
+
+        size_t size = var.a().size();
+        int i = index.i();
+
+        // 範囲チェック
+        if (i >= 0 && i >= size || i < 0 && -i >= size + 1) {
+            clog::e("添字(%d)が範囲外です", i);
+            return cvalue();
+        }
+        size_t fixed_index = (i >= 0 ? i : size + i);
+
+        switch (node->op())
+        {
+        case OP_INC:
+            var.a().at(fixed_index) = var.a().at(fixed_index).i() + 1;
+            break;
+        case OP_DEC:
+            var.a().at(fixed_index) = var.a().at(fixed_index).i() - 1;
+            break;
+        }
     }
 
     return cvalue();
@@ -1535,8 +1549,6 @@ cvalue hii_driver::eval(cnode const *node)
         return eval_assign(node);
     case OP_REASSIGN:
         return eval_reassign(node);
-    case OP_LSASSIGN:
-        return eval_lsassign(node);
     case OP_INC:
     case OP_DEC:
         return eval_op1stat(node);
@@ -1584,6 +1596,7 @@ cvalue hii_driver::eval(cnode const *node)
     case OP_SLICE:
         return eval_slice(node);
     case OP_LCOMMENT:
+    case OP_TCOMMENT:
         return cvalue();
     case OP_MCOMMENT:
         {

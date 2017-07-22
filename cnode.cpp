@@ -34,10 +34,14 @@ void cnode::print(cnode const *node, unsigned int nestlev)
     switch (node->op())
     {
     case OP_LCOMMENT:
+    case OP_TCOMMENT:
         cout << " \"" << dynamic_cast<const cleaf *>(node)->sval() << "\"";
         break;
     case OP_ID:
         cout << " " << dynamic_cast<const cleaf *>(node)->sval();
+        break;
+    case OP_VAR:
+        cout << " \e[36m$" << dynamic_cast<const cleaf *>(node)->sval() << "\e[0m";
         break;
     case OP_INT:
         cout << " " << dynamic_cast<const cleaf *>(node)->ival();
@@ -63,7 +67,6 @@ const char * cnode::name() const
     case OP_STATS:    return "STATS";    break;
     case OP_ASSIGN:   return "ASSIGN";   break;
     case OP_REASSIGN: return "REASSIGN"; break;
-    case OP_LSASSIGN: return "LSASSIGN"; break;
     case OP_INC:      return "INC";      break;
     case OP_DEC:      return "DEC";      break;
     case OP_CALL:     return "CALL";     break;
@@ -96,6 +99,7 @@ const char * cnode::name() const
     case OP_OR:       return "OR";       break;
     case OP_CALLEXPR: return "CALLEXPR"; break;
     case OP_LCOMMENT: return "LCOMMENT"; break;
+    case OP_TCOMMENT: return "TCOMMENT"; break;
     case OP_MCOMMENT: return "MCOMMENT"; break;
     case OP_RCOMMENT: return "RCOMMENT"; break;
     case OP_ID:       return "ID";       break;
