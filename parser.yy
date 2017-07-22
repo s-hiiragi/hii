@@ -100,6 +100,7 @@
 %type <node>    lcmnt
 %type <node>    tcmnt
 %type <node>    rcmnt
+%type <node>    var_expr
 /*
 %type <list>    attrs
 */
@@ -184,26 +185,12 @@ stat    : assign_stmt                   { $$ = $1; }
 assign_stmt : idvar '=' expr                { $$ = new cnode(OP_ASSIGN, $1, $3); }
             ;
 
-reassign_stmt : var ":=" expr               { $$ = new cnode(OP_REASSIGN, $1, $3); }
-              | var '[' expr ']' '=' expr   { $$ = new cnode(OP_REASSIGN, new cnode(OP_ELEMENT, $1, $3), $6); }
+reassign_stmt : var_expr ":=" expr          { $$ = new cnode(OP_REASSIGN, $1, $3); }
               ;
 
-op1_stmt    : var "++"                      { $$ = new cnode(OP_INC, $1); }
-            | var '[' expr ']' "++"         { $$ = new cnode(OP_INC, new cnode(OP_ELEMENT, $1, $3)); }
-            | var "--"                      { $$ = new cnode(OP_DEC, $1); }
-            | var '[' expr ']' "--"         { $$ = new cnode(OP_DEC, new cnode(OP_ELEMENT, $1, $3)); }
+op1_stmt    : var_expr "++"                 { $$ = new cnode(OP_INC, $1); }
+            | var_expr "--"                 { $$ = new cnode(OP_DEC, $1); }
             ;
-
-/*
-op1_stmt    : var "++"                      { $$ = new cnode(OP_INC, $1); }
-            | var "--"                      { $$ = new cnode(OP_DEC, $1); }
-            | array_var_elem "++"                { $$ = new cnode(OP_INC, $1); }
-            | array_var_elem "--"                { $$ = new cnode(OP_DEC, $1); }
-            ;
-
-array_var_elem : var '[' expr ']'              { $$ = new cnode(OP_ARRAY_VAR_ELEM, $1, $3); }
-            ;
-*/
 
 if_stmt     : "if" expr '\n' stats elifs "end"  { $$ = new cnode(OP_IF, $2, new cnode(OP_NODE, $4, $5)); }
             ;
@@ -292,6 +279,10 @@ expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); 
             | idvar                         { $$ = $1; }
             | "int"                         { $$ = new cleaf(OP_INT, $1); }
             | "str"                         { $$ = new cleaf(OP_STR, $1); }
+            ;
+
+var_expr    : var                           { $$ = $1; }
+            | var '[' expr ']'              { $$ = new cnode(OP_ELEMENT, $1, $3); }
             ;
 
 slice_expr  : expr '[' ':' expr ']'         { $$ = new cnode(OP_SLICE, $1, new cnode(OP_NODE, nullptr, $4)); }
