@@ -1,5 +1,20 @@
 # 開発メモ
 
+[ ] 気になる: OP\_ELEMENTはeval\_op2とeval\_op2statで異なる評価が行われている
+    - eval\_op2だと、評価結果はcvalue(コピー値)となる
+
+[ ] 負の添字->正の添字変換ロジックを一箇所にまとめる
+    - 現状の変換箇所
+        - OP_ELEMENT    eval_op2 (e = a[index])
+        - OP_SLICE      eval_slice (e = a[start:end])
+        - OP_xxx_ASIGN  eval_op2stat (e[index] = value)
+    - まとめ先
+        - cvalue::a(int index);
+
+[ ] cvalue.a(index)を定義する (cvalue.a().at(index)と書くのが煩わしいため)
+
+[ ] stmtをstatに統一する part2
+
 [x] 式をimmutableな式とmutableな式に分ける
     - 現状の問題
         - `a = $b + $c`といった式を書けてしまう

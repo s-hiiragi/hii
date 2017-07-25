@@ -67,6 +67,7 @@ class hii_driver
     cvalue eval_assign(cnode const *node);
     cvalue eval_reassign(cnode const *node);
     cvalue eval_op1stat(cnode const *node);
+    cvalue eval_op2stat(cnode const *node);
     cvalue eval_fun(cnode const *node);
     cvalue eval_ret(cnode const *node);
     cvalue eval_if(cnode const *node);

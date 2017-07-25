@@ -17,6 +17,8 @@ class cvalue
         // INTEGER -> NUMBERにしたい(実数も扱いたい)
     };
 
+    static size_t to_positive_index(int index);
+
     cvalue()
         : type_(VOID) {}
 
@@ -70,7 +72,7 @@ class cvalue
         if (is_ary()) delete value_.a;
     }
 
-    cvalue & operator=(cvalue const & obj)
+    cvalue & operator=(cvalue const &obj)
     {
         if (&obj != this) {
             copy_members(obj);
@@ -101,10 +103,23 @@ class cvalue
     }
 
     int i() const { return value_.i; }
+
     std::string & s() { return *value_.s; }
     std::string const & s() const { return *value_.s; }
+
     std::vector<cvalue> & a() { return *value_.a; }
     std::vector<cvalue> const & a() const { return *value_.a; }
+
+    cvalue & a(size_t index)
+    {
+        return const_cast<cvalue &>(const_cast<cvalue const *>(this)->a(index));
+    }
+
+    cvalue const & a(size_t index) const
+    {
+        return value_.a->at(index);
+    }
+
 
     std::string to_string() const;
 

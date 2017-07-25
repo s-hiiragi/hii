@@ -63,6 +63,10 @@
 %token          TK_REASSIGN         ":="
 %token          TK_INC              "++"
 %token          TK_DEC              "--"
+%token          TK_PLUS_ASSIGN      "+="
+%token          TK_MINUS_ASSIGN     "-="
+%token          TK_TIMES_ASSIGN     "*="
+%token          TK_DIVIDE_ASSIGN    "/="
 %token          TK_TDOT             "..."
 %token          TK_DDOT             ".."
 %token          TK_EQ               "=="
@@ -78,6 +82,7 @@
 %type <node>    assign_stmt
 %type <node>    reassign_stmt
 %type <node>    op1_stmt
+%type <node>    op2_stmt
 %type <node>    if_stmt
 %type <node>    elifs
 %type <node>    sw_stmt
@@ -92,6 +97,7 @@
 %type <node>    expr
 %type <node>    slice_expr
 %type <list>    exprs
+%type <node>    var_expr
 %type <list>    some_exprs
 %type <list>    args
 %type <node>    id
@@ -100,7 +106,6 @@
 %type <node>    lcmnt
 %type <node>    tcmnt
 %type <node>    rcmnt
-%type <node>    var_expr
 /*
 %type <list>    attrs
 */
@@ -116,6 +121,7 @@
 %destructor { delete $$; } assign_stmt
 %destructor { delete $$; } reassign_stmt
 %destructor { delete $$; } op1_stmt
+%destructor { delete $$; } op2_stmt
 %destructor { delete $$; } if_stmt
 %destructor { delete $$; } elifs
 %destructor { delete $$; } sw_stmt
@@ -172,6 +178,7 @@ mcmnt   : lcmnt                         { $$ = new clist(OP_MCOMMENT, $1); }
 stat    : assign_stmt                   { $$ = $1; }
         | reassign_stmt                 { $$ = $1; }
         | op1_stmt                      { $$ = $1; }
+        | op2_stmt                      { $$ = $1; }
         | if_stmt                       { $$ = $1; }
         | sw_stmt                       { $$ = $1; }
         | fun_stmt                      { $$ = $1; }
@@ -190,6 +197,12 @@ reassign_stmt : var_expr ":=" expr          { $$ = new cnode(OP_REASSIGN, $1, $3
 
 op1_stmt    : var_expr "++"                 { $$ = new cnode(OP_INC, $1); }
             | var_expr "--"                 { $$ = new cnode(OP_DEC, $1); }
+            ;
+
+op2_stmt    : var_expr "+=" expr            { $$ = new cnode(OP_PLUS_ASSIGN, $1, $3); }
+            | var_expr "-=" expr            { $$ = new cnode(OP_MINUS_ASSIGN, $1, $3); }
+            | var_expr "*=" expr            { $$ = new cnode(OP_TIMES_ASSIGN, $1, $3); }
+            | var_expr "/=" expr            { $$ = new cnode(OP_DIVIDE_ASSIGN, $1, $3); }
             ;
 
 if_stmt     : "if" expr '\n' stats elifs "end"  { $$ = new cnode(OP_IF, $2, new cnode(OP_NODE, $4, $5)); }

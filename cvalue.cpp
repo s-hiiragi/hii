@@ -1,6 +1,17 @@
 #include <stdexcept>
 #include "cvalue.h"
 
+static size_t to_positive_index(int index, size_t size)
+{
+    if (index < 0) {
+        if (-index > size) {
+            return size;
+        }
+        return size + index;
+    }
+    return index;
+}
+
 std::string cvalue::to_string() const
 {
     switch (type_)

@@ -63,6 +63,10 @@ lcmnt   #[^\n]*
 ":="     return token::TK_REASSIGN;
 "++"     return token::TK_INC;
 "--"     return token::TK_DEC;
+"+="     return token::TK_PLUS_ASSIGN;
+"-="     return token::TK_MINUS_ASSIGN;
+"*="     return token::TK_TIMES_ASSIGN;
+"/="     return token::TK_DIVIDE_ASSIGN;
 
 "..."    return token::TK_TDOT;
 ".."     return token::TK_DDOT;
