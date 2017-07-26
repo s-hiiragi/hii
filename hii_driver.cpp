@@ -262,6 +262,7 @@ bool hii_driver::resolve_names(cnode &node)
                     name == "input" ||
                     name == "p" ||
                     name == "print" ||
+                    name == "assert" ||
                     name == "_put_scopes") {
                     break;
                 }
@@ -472,9 +473,15 @@ cvalue hii_driver::eval_reassign(cnode const *node)
         cvalue index = eval(lhs->right());
 
         // 添字の型チェック
+        if (!index.is_int()) {
+            clog::e("添字の型(%s)が数値ではありません", index.type_name().c_str());
+            return cvalue();
+        }
 
         // 添字の範囲チェック
-        if (index.i() < 0 || var.a().size() <= index.i()) {
+        size_t size = var.a().size();
+        size_t fixed_index = cvalue::to_positive_index(index.i(), size);
+        if (fixed_index >= size) {
             clog::e("添字(%d)が配列(0..%zu)の範囲外です", index.i(), var.a().size());
             return cvalue();
         }
@@ -482,11 +489,15 @@ cvalue hii_driver::eval_reassign(cnode const *node)
         // 式を評価
         cvalue val = eval(expr);
 
-        // XXX 配列の型と値の型の比較
-        // ==> 現状では配列型が要素の型を保持していないため比較できない
+        // 配列の型と値の型の比較
+        if (var.a().at(fixed_index).type() != val.type()) {
+            clog::e("配列の要素の型(%s)と値の型(%s)が一致しません", 
+                var.a().at(fixed_index).type_name().c_str(), val.type_name().c_str());
+            return cvalue();
+        }
 
         // 要素の変更
-        it->get_var(varname).a().at(index.i()) = val;
+        var.a().at(fixed_index) = val;
     }
 
     return cvalue();
@@ -707,15 +718,10 @@ cvalue hii_driver::eval_op2stat(cnode const *node)
 
         size_t size = var.a().size();
         int i = index.i();
-
-        // 範囲チェック
-        if (i >= 0 && i >= size || i < 0 && -i >= size + 1) {
+        size_t fixed_index = cvalue::to_positive_index(i, size);
+        if (fixed_index >= size) {
             clog::e("添字(%d)が範囲外です", i);
             return cvalue();
-        }
-        size_t fixed_index = (i >= 0 ? i : size + i);
-
-        if (var.type() != val.type()) {
         }
 
         if (var.a().at(fixed_index).type() != val.type()) {
@@ -976,6 +982,33 @@ cvalue hii_driver::eval_call(cnode const *node)
         }
         if (name == "p") {
             cout << endl;
+        }
+    }
+    else if (name == "assert") {
+        if (values.size() < 2) {
+            clog::e("引数の数が足りません (size=%zu)", values.size());
+            return cvalue();
+        }
+
+        auto const &actual = values.at(0);
+        auto const &expected = values.at(1);
+
+        if (actual != expected) {
+            // メッセージを取得
+            string message;
+            if (values.size() >= 3) {
+                if (!values.at(2).is_str()) {
+                    clog::e("メッセージ(引数3)の型が文字列ではありません", values.at(2).type_name().c_str());
+                    message = values.at(2).to_string();
+                } else {
+                    message = values.at(2).s();
+                }
+            }
+
+            clog::e("assert: failed: %s", message.c_str());
+            clog::e("  actual   : %s", actual.to_string().c_str());
+            clog::e("  expected : %s", expected.to_string().c_str());
+            return cvalue();
         }
     }
     else if (name == "_put_scopes") {
@@ -1329,6 +1362,8 @@ cvalue hii_driver::eval_op2(cnode const *node)
         res = cvalue(l_value.i() % r_value.i());
         break;
     case OP_EQ:
+        break;
+
         if (l_value.type() != r_value.type()) {
             clog::e("右辺と左辺の型が異なります");
             std::runtime_error("右辺と左辺の型が異なります");
@@ -1507,28 +1542,19 @@ cvalue hii_driver::eval_op2(cnode const *node)
             int i = r_value.i();
             if (l_value.is_str()) {
                 size_t size = l_value.s().size();
-                // 範囲チェック
-                if (i >= 0 && i >= size || i < 0 && -i >= size + 1) {
-                    clog::e("添字(%d)が範囲外です", i);
-                    break;
-                }
-                size_t index = (i >= 0 ? i : size + i);
-                res = cvalue(string(1, l_value.s().at(index)));
-                /*
-                size_t size = l_value.s().size();
                 size_t index = cvalue::to_positive_index(i, size);
                 if (index >= size) {
-                }
-                res= cvalue(string(1, l_value.s().at(index)));
-                */
-            } else {
-                size_t size = l_value.a().size();
-                // 範囲チェック
-                if (i >= 0 && i >= size || i < 0 && -i >= size + 1) {
                     clog::e("添字(%d)が範囲外です", i);
                     break;
                 }
-                size_t index = (i >= 0 ? i : size + i);
+                res= cvalue(string(1, l_value.s().at(index)));
+            } else {
+                size_t size = l_value.a().size();
+                size_t index = cvalue::to_positive_index(i, size);
+                if (index >= size) {
+                    clog::e("添字(%d)が範囲外です", i);
+                    break;
+                }
                 res = l_value.a().at(index);
             }
         }
@@ -1540,6 +1566,59 @@ cvalue hii_driver::eval_op2(cnode const *node)
     return res;
 }
 
+/*
+ * スライスの評価
+ * 
+ * スライスを取得可能な値をここではシーケンスと呼ぶ
+ * 現状では以下の型の値が相当する
+ * - 文字列
+ * - 配列
+ * 
+ * アルゴリズム
+ *
+ * 1. シーケンスの要素数(size)を取得する
+ *   1.1 文字列の場合
+ *     (1) 内部プロパティ[size]の値をsizeに設定する
+ *   1.2 配列の場合
+ *     (1) 内部プロパティ[size]の値をsizeに設定する
+ * 
+ * 2. 始端の添字(start)を評価する
+ *   2.1 始端の添字が指定されていない場合
+ *     (1) startに0を設定する
+ *   2.2 始端の添字が指定されている場合
+ *     (1) 始端の添字を評価し、評価結果をstartに設定する
+ *     (2) startが数値型ではない場合、エラーを返す
+ *       TODO 静的に式の型チェックを行う
+ *     TODO 添字の範囲外チェックを行う
+ *     (3) startが負の場合、正の整数に変換する
+ *       start = size + start
+ * 
+ * 3. 終端の添字(end)を評価する
+ *   3.1 終端の添字が指定されていない場合
+ *     (1) endに0を設定する
+ *   3.2 終端の添字が指定されている場合
+ *     (1) 終端の添字を評価し、評価結果をendに設定する
+ *     (2) endが数値型ではない場合、エラーを返す
+ *       TODO 静的に式の型チェックを行う
+ *     TODO 添字の範囲外チェックを行う
+ *     (3) endが負の場合、正の整数に変換する
+ *       end = size + end
+ * 
+ * 4. 戻り値(res)を計算する
+ *   4.1 start <= endの場合
+ *     4.1.1 配列の場合
+ *       (1) [start .. end]の範囲の要素をコピーした配列をresに設定する
+ *     4.1.2 文字列の場合
+ *       (1) [start .. end]の範囲の文字をコピーした文字列をresに設定する
+ *   4.2 start >  endの場合
+ *     4.2.1 配列の場合
+ *       (1) [end .. start]の範囲の要素をコピーした配列をresに設定する
+ *     4.2.2 文字列の場合
+ *       (1) [end .. start]の範囲の文字をコピーした文字列をresに設定する
+ * 
+ * Note:
+ * - 現状ではシーケンスのコピーが作られる
+ */
 cvalue hii_driver::eval_slice(cnode const *node)
 {
     auto const *obj_expr = node->left();
@@ -1548,73 +1627,79 @@ cvalue hii_driver::eval_slice(cnode const *node)
 
     assert(obj_expr != nullptr);
 
-    cvalue obj_value = eval(obj_expr);
+    auto &&obj = eval(obj_expr);
 
-    if (!obj_value.is_ary() && !obj_value.is_str()) {
-        clog::e("配列,文字列以外(%s)からスライスを作成することはできません", obj_value.type_name().c_str());
+    if (!obj.is_ary() && !obj.is_str()) {
+        clog::e("配列,文字列以外の型からスライスを作成することはできません (type=%s)", obj.type_name().c_str());
         return cvalue();
     }
 
-    size_t sz;
-    switch (obj_value.type())
+    size_t size;
+    switch (obj.type())
     {
     case cvalue::STRING:
-        sz = obj_value.s().size();
+        size = obj.s().size();
         break;
     case cvalue::ARRAY:
-        sz = obj_value.a().size();
+        size = obj.a().size();
         break;
+    }
+
+    if (size == 0) {
+        clog::e("サイズが0の配列または文字列からスライスを作ることはできません");
+        return cvalue();
     }
 
     // start, endを評価
 
     // [:end]   -> 0, end
-    // [start:] -> start, length-1
-    cvalue start_value;
-    cvalue end_value;
+    // [start:] -> start, size-1
+    size_t start, end;
 
     if (start_expr == nullptr) {
-        start_value = cvalue(0);
+        start = 0;
     } else {
-        start_value = eval(start_expr);
-        if (!start_value.is_int()) {
-            clog::e("スライスの開始番号(%s)が数値ではありません", start_value.type_name().c_str());
+        auto &&v = eval(start_expr);
+        if (!v.is_int()) {
+            clog::e("スライスの始端が数値型ではありません (type=%s)", v.type_name().c_str());
+            return cvalue();
         }
-        if (start_value.i() < 0) {
-            // len + (-1) = len - 1
-            // len + (-2) = len - 2
-            start_value = cvalue(sz + start_value.i());
+        start = cvalue::to_positive_index(v.i(), size);
+        if (start >= size) {
+            clog::e("スライスの始端が範囲外です (index=%s, size=%zu)", v.i(), size);
+            return cvalue();
         }
     }
 
     if (end_expr == nullptr) {
-        end_value = cvalue(sz - 1);
+        end = size - 1;
     } else {
-        end_value = eval(end_expr);
-        if (!end_value.is_int()) {
-            clog::e("スライスの終了番号(%s)が数値ではありません", end_value.type_name().c_str());
+        auto &&v = eval(end_expr);
+        if (!v.is_int()) {
+            clog::e("スライスの終端が数値型ではありません (type=%s)", v.type_name().c_str());
+            return cvalue();
         }
-        if (end_value.i() < 0) {
-            // len + (-1) = len - 1
-            // len + (-2) = len - 2
-            end_value = cvalue(sz + end_value.i());
+        end = cvalue::to_positive_index(v.i(), size);
+        if (end >= size) {
+            clog::e("スライスの始端が範囲外です (index=%s, size=%zu)", v.i(), size);
+            return cvalue();
         }
     }
 
     cvalue res;
-    if (start_value.i() <= end_value.i()) {
-        if (obj_value.is_ary()) {
-            res = cvalue(vector<cvalue>(obj_value.a().begin() + start_value.i(), obj_value.a().begin() + end_value.i() + 1));
+    if (start <= end) {
+        if (obj.is_ary()) {
+            res = cvalue(vector<cvalue>(obj.a().begin() + start, obj.a().begin() + end + 1));
         } else {
-            res = cvalue(string(obj_value.s().begin() + start_value.i(), obj_value.s().begin() + end_value.i() + 1));
+            res = cvalue(string(obj.s().begin() + start, obj.s().begin() + end + 1));
         }
     } else {
-        int rstart = sz - 1 - start_value.i();
-        int rend   = sz - 1 - end_value.i();
-        if (obj_value.is_ary()) {
-            res = cvalue(vector<cvalue>(obj_value.a().rbegin() + rstart, obj_value.a().rbegin() + rend + 1));
+        size_t rstart = size - 1 - start;
+        size_t rend   = size - 1 - end;
+        if (obj.is_ary()) {
+            res = cvalue(vector<cvalue>(obj.a().rbegin() + rstart, obj.a().rbegin() + rend + 1));
         } else {
-            res = cvalue(string(obj_value.s().rbegin() + rstart, obj_value.s().rbegin() + rend + 1));
+            res = cvalue(string(obj.s().rbegin() + rstart, obj.s().rbegin() + rend + 1));
         }
     }
 
@@ -1647,6 +1732,7 @@ cvalue hii_driver::eval_id(cnode const *node)
         name == "input" ||
         name == "p" ||
         name == "print" ||
+        name == "assert" ||
         name == "_put_scopes")
     {
         // call_statのノード構造に変換する

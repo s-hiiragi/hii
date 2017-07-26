@@ -1,13 +1,46 @@
 # 開発メモ
 
+[ ] assertの内部で使っている==,!=と==,!=演算子の結果が同じになるようにする
+    - eval\_op2
+        - OP\_EQ
+        - OP\_NEQ
+
+[ ] 問題: clog::e()にconst char\*とstd::stringを間違って指定してもエラーにならない
+    - GCC拡張のattribute((format))を使う (clangは？)
+
+[x] アサーションを追加する
+    - assert actual, expect[, message]
+
+[ ] 組込関数を追加する場合の変更箇所
+    - hii\_driver.cpp
+        - resolve_names() // 識別子のチェック (OP_VARのケース)
+        - eval_call() // 組込関数の実装
+        - eval_id // 識別子の評価
+
+[ ] エラーケースをまとめる
+    - 文字列
+        - 添字が数値型ではありません(type=%s)
+        - 添字が範囲外です(index=%d, size=%d)
+    - 配列
+        - 添字が数値型ではありません(type=%s)
+        - 添字が範囲外です(index=%d, size=%d)
+        - 代入する値の型が要素の型と一致しません (expr.type=%s, element.type=%s)
+
+[ ] 戻り値と成功/失敗を返したい場合に分割代入が欲しい
+    - a, b = c, d
+    - $a, $b = c, d
+    - $a[1], $a[0] = c, d
+    - $a, $b = $b, $a
+
 [ ] 気になる: OP\_ELEMENTはeval\_op2とeval\_op2statで異なる評価が行われている
     - eval\_op2だと、評価結果はcvalue(コピー値)となる
 
 [ ] 負の添字->正の添字変換ロジックを一箇所にまとめる
     - 現状の変換箇所
-        - OP_ELEMENT    eval_op2 (e = a[index])
-        - OP_SLICE      eval_slice (e = a[start:end])
-        - OP_xxx_ASIGN  eval_op2stat (e[index] = value)
+        - [x] OP_ELEMENT    eval_op2 (e = a[index])
+        - [ ] OP_SLICE      eval_slice (e = a[start:end])
+        - [x] OP_REASSIGN   eval_reassign ($a[index] := value)
+        - [x] OP_xxx_ASIGN  eval_op2stat (e[index] += value)
     - まとめ先
         - cvalue::a(int index);
 

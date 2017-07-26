@@ -17,7 +17,7 @@ class cvalue
         // INTEGER -> NUMBERにしたい(実数も扱いたい)
     };
 
-    static size_t to_positive_index(int index);
+    static size_t to_positive_index(int index, size_t size);
 
     cvalue()
         : type_(VOID) {}
@@ -120,8 +120,10 @@ class cvalue
         return value_.a->at(index);
     }
 
-
     std::string to_string() const;
+
+    bool operator == (cvalue const &obj) const;
+    bool operator != (cvalue const &obj) const;
 
   private:
     void copy_members(cvalue const &obj)

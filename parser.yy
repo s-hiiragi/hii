@@ -298,7 +298,8 @@ var_expr    : var                           { $$ = $1; }
             | var '[' expr ']'              { $$ = new cnode(OP_ELEMENT, $1, $3); }
             ;
 
-slice_expr  : expr '[' ':' expr ']'         { $$ = new cnode(OP_SLICE, $1, new cnode(OP_NODE, nullptr, $4)); }
+slice_expr  : expr '[' ':' ']'              { $$ = new cnode(OP_SLICE, $1, new cnode(OP_NODE, nullptr, nullptr)); }
+            | expr '[' ':' expr ']'         { $$ = new cnode(OP_SLICE, $1, new cnode(OP_NODE, nullptr, $4)); }
             | expr '[' expr ':' ']'         { $$ = new cnode(OP_SLICE, $1, new cnode(OP_NODE, $3, nullptr)); }
             | expr '[' expr ':' expr ']'    { $$ = new cnode(OP_SLICE, $1, new cnode(OP_NODE, $3, $5)); }
             ;
