@@ -262,6 +262,7 @@ bool hii_driver::resolve_names(cnode &node)
                     name == "input" ||
                     name == "p" ||
                     name == "print" ||
+                    name == "len" ||
                     name == "assert" ||
                     name == "_put_scopes") {
                     break;
@@ -984,6 +985,29 @@ cvalue hii_driver::eval_call(cnode const *node)
             cout << endl;
         }
     }
+    else if (name == "len") {
+        if (values.size() < 1) {
+            clog::e("引数の数が足りません (size=%zu)", values.size());
+            return cvalue();
+        }
+        auto const &v = values.at(0);
+        cvalue res;
+        switch (v.type())
+        {
+        case cvalue::STRING:
+            res = cvalue(static_cast<int>(v.s().size()));
+            break;
+        case cvalue::ARRAY:
+            res = cvalue(static_cast<int>(v.a().size()));
+            break;
+        default:
+            // XXX 文字列、配列以外は1としておく
+            // XXX 型チェックで弾いた方が良い？
+            res = cvalue(1);
+            break;
+        }
+        return res;
+    }
     else if (name == "assert") {
         if (values.size() < 2) {
             clog::e("引数の数が足りません (size=%zu)", values.size());
@@ -1362,42 +1386,10 @@ cvalue hii_driver::eval_op2(cnode const *node)
         res = cvalue(l_value.i() % r_value.i());
         break;
     case OP_EQ:
-        break;
-
-        if (l_value.type() != r_value.type()) {
-            clog::e("右辺と左辺の型が異なります");
-            std::runtime_error("右辺と左辺の型が異なります");
-        }
-        switch (l_value.type()) {
-        case cvalue::INTEGER:
-            res = cvalue(l_value.i() == r_value.i() ? 1 : 0);
-            break;
-        case cvalue::STRING:
-            res = cvalue(l_value.s() == r_value.s() ? 1 : 0);
-            break;
-        default:
-            clog::e("比較不可能な型が指定されています");
-            std::runtime_error("比較不可能な型が指定されています");
-            break;
-        }
+        res = cvalue(l_value == r_value);
         break;
     case OP_NEQ:
-        if (l_value.type() != r_value.type()) {
-            clog::e("右辺と左辺の型が異なります");
-            std::runtime_error("右辺と左辺の型が異なります");
-        }
-        switch (l_value.type()) {
-        case cvalue::INTEGER:
-            res = cvalue(l_value.i() != r_value.i() ? 1 : 0);
-            break;
-        case cvalue::STRING:
-            res = cvalue(l_value.s() != r_value.s() ? 1 : 0);
-            break;
-        default:
-            clog::e("比較不可能な型が指定されています");
-            std::runtime_error("比較不可能な型が指定されています");
-            break;
-        }
+        res = cvalue(l_value != r_value);
         break;
     case OP_LT:
         if (l_value.type() != r_value.type()) {
@@ -1732,6 +1724,7 @@ cvalue hii_driver::eval_id(cnode const *node)
         name == "input" ||
         name == "p" ||
         name == "print" ||
+        name == "len" ||
         name == "assert" ||
         name == "_put_scopes")
     {

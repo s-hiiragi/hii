@@ -1,9 +1,13 @@
 # 開発メモ
 
-[ ] assertの内部で使っている==,!=と==,!=演算子の結果が同じになるようにする
+[x] 組込関数lenを追加
+    - 後々はメソッドにしたい
+
+[x] assertの内部で使っている==,!=と==,!=演算子の結果が同じになるようにする
     - eval\_op2
         - OP\_EQ
         - OP\_NEQ
+    - cvalue::operator==/!=を使うように統合
 
 [ ] 問題: clog::e()にconst char\*とstd::stringを間違って指定してもエラーにならない
     - GCC拡張のattribute((format))を使う (clangは？)
@@ -38,7 +42,7 @@
 [ ] 負の添字->正の添字変換ロジックを一箇所にまとめる
     - 現状の変換箇所
         - [x] OP_ELEMENT    eval_op2 (e = a[index])
-        - [ ] OP_SLICE      eval_slice (e = a[start:end])
+        - [x] OP_SLICE      eval_slice (e = a[start:end])
         - [x] OP_REASSIGN   eval_reassign ($a[index] := value)
         - [x] OP_xxx_ASIGN  eval_op2stat (e[index] += value)
     - まとめ先
