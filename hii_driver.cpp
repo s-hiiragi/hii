@@ -491,14 +491,14 @@ cvalue hii_driver::eval_reassign(cnode const *node)
         cvalue val = eval(expr);
 
         // 配列の型と値の型の比較
-        if (var.a().at(fixed_index).type() != val.type()) {
+        if (var.a(fixed_index).type() != val.type()) {
             clog::e("配列の要素の型(%s)と値の型(%s)が一致しません", 
-                var.a().at(fixed_index).type_name().c_str(), val.type_name().c_str());
+                var.a(fixed_index).type_name().c_str(), val.type_name().c_str());
             return cvalue();
         }
 
         // 要素の変更
-        var.a().at(fixed_index) = val;
+        var.a(fixed_index) = val;
     }
 
     return cvalue();
@@ -580,10 +580,10 @@ cvalue hii_driver::eval_op1stat(cnode const *node)
         switch (node->op())
         {
         case OP_INC:
-            var.a().at(fixed_index) = var.a().at(fixed_index).i() + 1;
+            var.a(fixed_index) = var.a(fixed_index).i() + 1;
             break;
         case OP_DEC:
-            var.a().at(fixed_index) = var.a().at(fixed_index).i() - 1;
+            var.a(fixed_index) = var.a(fixed_index).i() - 1;
             break;
         }
     }
@@ -725,72 +725,72 @@ cvalue hii_driver::eval_op2stat(cnode const *node)
             return cvalue();
         }
 
-        if (var.a().at(fixed_index).type() != val.type()) {
-            clog::e("変数%sの型(%s)とオペランドの型(%s)が一致しません", varname.c_str(), var.a().at(fixed_index).type_name().c_str(), val.type_name().c_str());
+        if (var.a(fixed_index).type() != val.type()) {
+            clog::e("変数%sの型(%s)とオペランドの型(%s)が一致しません", varname.c_str(), var.a(fixed_index).type_name().c_str(), val.type_name().c_str());
             return cvalue();
         }
 
         switch (node->op())
         {
         case OP_PLUS_ASSIGN:
-            switch (var.a().at(fixed_index).type())
+            switch (var.a(fixed_index).type())
             {
             case cvalue::INTEGER:
                 {
-                    int i = var.a().at(fixed_index).i() + val.i();
-                    var.a().at(fixed_index) = cvalue(i);
+                    int i = var.a(fixed_index).i() + val.i();
+                    var.a(fixed_index) = cvalue(i);
                 }
                 break;
             case cvalue::STRING:
                 {
-                    string s = var.a().at(fixed_index).s() + val.s();
-                    var.a().at(fixed_index) = cvalue(s);
+                    string s = var.a(fixed_index).s() + val.s();
+                    var.a(fixed_index) = cvalue(s);
                 }
                 break;
             default:
-                clog::e("変数%sは%s型であるため+=演算子を適用できません", varname.c_str(), var.a().at(fixed_index).type_name().c_str());
+                clog::e("変数%sは%s型であるため+=演算子を適用できません", varname.c_str(), var.a(fixed_index).type_name().c_str());
                 break;
             }
             break;
         case OP_MINUS_ASSIGN:
-            switch (var.a().at(fixed_index).type())
+            switch (var.a(fixed_index).type())
             {
             case cvalue::INTEGER:
                 {
-                    int i = var.a().at(fixed_index).i() - val.i();
-                    var.a().at(fixed_index) = cvalue(i);
+                    int i = var.a(fixed_index).i() - val.i();
+                    var.a(fixed_index) = cvalue(i);
                 }
                 break;
             default:
-                clog::e("変数%sは%s型であるため-=演算子を適用できません", varname.c_str(), var.a().at(fixed_index).type_name().c_str());
+                clog::e("変数%sは%s型であるため-=演算子を適用できません", varname.c_str(), var.a(fixed_index).type_name().c_str());
                 break;
             }
             break;
         case OP_TIMES_ASSIGN:
-            switch (var.a().at(fixed_index).type())
+            switch (var.a(fixed_index).type())
             {
             case cvalue::INTEGER:
                 {
-                    int i = var.a().at(fixed_index).i() * val.i();
-                    var.a().at(fixed_index) = cvalue(i);
+                    int i = var.a(fixed_index).i() * val.i();
+                    var.a(fixed_index) = cvalue(i);
                 }
                 break;
             default:
-                clog::e("変数%sは%s型であるため*=演算子を適用できません", varname.c_str(), var.a().at(fixed_index).type_name().c_str());
+                clog::e("変数%sは%s型であるため*=演算子を適用できません", varname.c_str(), var.a(fixed_index).type_name().c_str());
                 break;
             }
             break;
         case OP_DIVIDE_ASSIGN:
-            switch (var.a().at(fixed_index).type())
+            switch (var.a(fixed_index).type())
             {
             case cvalue::INTEGER:
                 {
-                    int i = var.a().at(fixed_index).i() / val.i();
-                    var.a().at(fixed_index) = cvalue(i);
+                    int i = var.a(fixed_index).i() / val.i();
+                    var.a(fixed_index) = cvalue(i);
                 }
                 break;
             default:
-                clog::e("変数%sは%s型であるため/=演算子を適用できません", varname.c_str(), var.a().at(fixed_index).type_name().c_str());
+                clog::e("変数%sは%s型であるため/=演算子を適用できません", varname.c_str(), var.a(fixed_index).type_name().c_str());
                 break;
             }
             break;
@@ -1171,7 +1171,7 @@ cvalue hii_driver::eval_loop(cnode const *node)
             // 文字列のn番目の文字をセット
             s.add_var(cnt_name, cvalue(string(1, loop_times.s().at(i))), false);
         } else if (loop_times.is_ary()) {
-            s.add_var(cnt_name, loop_times.a().at(i), false);
+            s.add_var(cnt_name, loop_times.a(i), false);
         }
 
         scopes_.push_back(s);
@@ -1547,7 +1547,7 @@ cvalue hii_driver::eval_op2(cnode const *node)
                     clog::e("添字(%d)が範囲外です", i);
                     break;
                 }
-                res = l_value.a().at(index);
+                res = l_value.a(index);
             }
         }
         break;

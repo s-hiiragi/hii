@@ -9,7 +9,7 @@
         - OP\_NEQ
     - cvalue::operator==/!=を使うように統合
 
-[ ] 問題: clog::e()にconst char\*とstd::stringを間違って指定してもエラーにならない
+[ ] 問題: clog::e()にconst char\*とstd::string\*を間違って指定してもエラーにならない
     - GCC拡張のattribute((format))を使う (clangは？)
 
 [x] アサーションを追加する
@@ -37,9 +37,11 @@
     - $a, $b = $b, $a
 
 [ ] 気になる: OP\_ELEMENTはeval\_op2とeval\_op2statで異なる評価が行われている
+    - 同じノード種別でも使い方が異なる
     - eval\_op2だと、評価結果はcvalue(コピー値)となる
+    - eval\_op2statだと、配列or文字列として変数名しか受け付けない
 
-[ ] 負の添字->正の添字変換ロジックを一箇所にまとめる
+[x] 負の添字->正の添字変換ロジックを一箇所にまとめる
     - 現状の変換箇所
         - [x] OP_ELEMENT    eval_op2 (e = a[index])
         - [x] OP_SLICE      eval_slice (e = a[start:end])
@@ -48,7 +50,8 @@
     - まとめ先
         - cvalue::a(int index);
 
-[ ] cvalue.a(index)を定義する (cvalue.a().at(index)と書くのが煩わしいため)
+[x] cvalue.a(index)を定義する (cvalue.a().at(index)と書くのが煩わしいため)
+    - cvalue.s().at(index)はにも用意するか？
 
 [ ] stmtをstatに統一する part2
 
