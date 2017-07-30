@@ -12,6 +12,25 @@ size_t cvalue::to_positive_index(int index, size_t size)
     return index;
 }
 
+bool cvalue::to_bool() const
+{
+    switch (type_)
+    {
+    case VOID:
+        throw std::logic_error("voidからboolへの変換は不可");
+        break;
+    case INTEGER:
+        return value_.i != 0;
+        break;
+    case STRING:
+        return (value_.s->size() != 0);
+        break;
+    case ARRAY:
+        return (value_.a->size() != 0);
+        break;
+    }
+}
+
 std::string cvalue::to_string() const
 {
     switch (type_)
@@ -70,10 +89,5 @@ bool cvalue::operator == (cvalue const &obj) const
     }
 
     return true;
-}
-
-bool cvalue::operator != (cvalue const &obj) const
-{
-    return !operator==(obj);
 }
 

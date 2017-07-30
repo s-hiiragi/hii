@@ -92,45 +92,6 @@ void hii_driver::set_ast(cnode *ast)
     cnode::print(ast);
 }
 
-/*
-void hii_driver::def_builtin_fun(cscope &scope, string const &name, clist *args)
-{
-    cnode *body = new clist(OP_STATS);
-    body->add(new cleaf(OP_BUILTIN_CALL, new string(name)));
-    
-    cnode *fun = new cnode(OP_FUN, new cleaf(OP_ID, new string(name)), new cnode(OP_NODE, args, body));
-    
-    builtin_functions_.push_back(fun);
-    scope.add_fun(name, fun);
-}
-
-void hii_driver::def_builtin_functions(cscope &scope)
-{
-    cnode *nop_args = new clist(OP_ARGS);
-    def_builtin_fun(scope, "nop", nop_args);
-
-    cnode *input_args = new clist(OP_ARGS);
-    def_builtin_fun(scope, "input", input_args);
-
-    cnode *p_args = new clist(OP_ARGS);  // 可変長引数
-    def_builtin_fun(scope, "p", p_args);
-
-    cnode *print_args = new clist(OP_ARGS);  // 可変長引数
-    def_builtin_fun(scope, "print", print_args);
-
-    cnode *_put_scopes_args = new clist(OP_ARGS);
-    def_builtin_fun(scope, "_put_scopes", _put_scopes_args);
-}
-
-void hii_driver::free_builtin_functions()
-{
-    for (auto &&e : builtin_functions_) {
-        // 解放
-        delete e;
-    }
-}
-*/
-
 /* 名前解決
  */
 bool hii_driver::resolve_names(cnode &node)
@@ -252,16 +213,19 @@ bool hii_driver::resolve_names(cnode &node)
                 auto const &name = static_cast<cleaf &>(n).sval();
                 clog::d("on_enter: %s %s", n.name(), name.c_str());
 
-                // 組込定数かチェック
+                // 組込定数はエラーとしない
+                /*
                 if (name == "sys_args") {
                     break;
                 }
+                */
 
-                // 組込関数かチェック
+                // 組込関数はエラーとしない
                 if (name == "nop" ||
                     name == "input" ||
                     name == "p" ||
                     name == "print" ||
+                    name == "d" ||
                     name == "len" ||
                     name == "assert" ||
                     name == "_put_scopes") {
@@ -892,11 +856,9 @@ cvalue hii_driver::eval_sw(cnode const *node)
             // swの値とcaseの値を比較し、複文の実行有無を決める
             bool result;
             switch (sw_value.type()) {
-            // 真:0以外 偽:0
             case cvalue::INTEGER:
                 result = (sw_value.i() == v.i());
                 break;
-            // 真:""以外 偽:""
             case cvalue::STRING:
                 result = (sw_value.s() == v.s());
                 break;
@@ -904,6 +866,7 @@ cvalue hii_driver::eval_sw(cnode const *node)
                 clog::e("swに指定された値とcaseの値を比較できません");
                 return false;
             }
+            // 比較結果が偽なら複文を実行しない、かつ、次のcaseを処理する
             if (!result) {
                 return true;
             }
@@ -912,6 +875,16 @@ cvalue hii_driver::eval_sw(cnode const *node)
         res = eval(stats);
 
         // すぐ抜けるのでexit,break,continueを処理する必要はない
+
+        if (break_loop_) {
+            clog::d("eval_sw: break_loop=true");
+            assert(res.is_int());
+
+            res = cvalue(res.i() - 1);
+            if (res.i() <= 0) {
+                break_loop_ = false;
+            }
+        }
 
         // case/else節を処理したので抜ける
         return false;
@@ -985,6 +958,19 @@ cvalue hii_driver::eval_call(cnode const *node)
             cout << endl;
         }
     }
+    else if (name == "d") {
+        auto it = values.cbegin();
+
+        cout << "D: ";
+        if (it != values.end()) {
+            cout << it->to_string();
+            it++;
+            for (; it != values.end(); it++) {
+                cout << ", " << it->to_string();
+            }
+        }
+        cout << endl;
+    }
     else if (name == "len") {
         if (values.size() < 1) {
             clog::e("引数の数が足りません (size=%zu)", values.size());
@@ -1029,9 +1015,10 @@ cvalue hii_driver::eval_call(cnode const *node)
                 }
             }
 
-            clog::e("assert: failed: %s", message.c_str());
-            clog::e("  actual   : %s", actual.to_string().c_str());
-            clog::e("  expected : %s", expected.to_string().c_str());
+            clog::e("assert: failed: %s\n" \
+                "      actual   : %s\n" \
+                "      expected : %s\n", message.c_str(), 
+                actual.to_string().c_str(), expected.to_string().c_str());
             return cvalue();
         }
     }
@@ -1241,7 +1228,7 @@ cvalue hii_driver::eval_break(cnode const *node)
         res = eval(expr);
         clog::d("eval_break: result=%s", res.to_string().c_str());
         if (!res.is_int() && !res.is_void()) {
-            clog::e("ループカウンタに数値以外(%s)が指定されています", res.to_string().c_str());
+            clog::e("数値以外(%s)が指定されています", res.to_string().c_str());
             res = cvalue();  // TODO 例外処理する
         }
         if (res.is_void()) {
@@ -1724,6 +1711,7 @@ cvalue hii_driver::eval_id(cnode const *node)
         name == "input" ||
         name == "p" ||
         name == "print" ||
+        name == "d" ||
         name == "len" ||
         name == "assert" ||
         name == "_put_scopes")

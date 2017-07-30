@@ -1,5 +1,28 @@
 # 開発メモ
 
+[ ] 関数内でloop/swの外側でbreak,continueを使うと呼び出し元のloop/swを抜けてしまう問題
+    - loop/swの外側でbreak,continueを使っているかチェックする必要がある
+    - 同様に関数の外でreturnを使っているかチェックする必要がある
+
+[ ] break sw, break loopのように抜ける構文を指定できてもいいかもしれない
+
+[ ] 型推論
+    - C++
+        - auto
+        - decltype(expression)
+        - decltype(auto)
+    - Java SE 7
+        - ダイヤモンドオペレータ('<>')
+            - ジェネリックな変数にnewでインスタンスを生成して代入するケースで使える機能
+        - var (JEP 286, 提案中?)
+    - TypeScript
+        - any型
+            - 変数の型チェックを無効にする
+        - 変数定義時の型推論
+            - var s = 0; s = '0'; //==> error
+        - 関数呼び出し時の型推論
+            - function f(n:number):void{} f(''); //==> error
+
 [x] 組込関数lenを追加
     - 後々はメソッドにしたい
 
@@ -9,13 +32,14 @@
         - OP\_NEQ
     - cvalue::operator==/!=を使うように統合
 
-[ ] 問題: clog::e()にconst char\*とstd::string\*を間違って指定してもエラーにならない
+[-] 問題: clog::e()にconst char\*とstd::string\*を間違って指定してもエラーにならない
     - GCC拡張のattribute((format))を使う (clangは？)
+        - テンプレートパラメータには使えない？
 
 [x] アサーションを追加する
     - assert actual, expect[, message]
 
-[ ] 組込関数を追加する場合の変更箇所
+[x] 組込関数を追加する場合の変更箇所
     - hii\_driver.cpp
         - resolve_names() // 識別子のチェック (OP_VARのケース)
         - eval_call() // 組込関数の実装
@@ -65,9 +89,10 @@
     - reassign\_stmt
     - lsassign\_stmt
 
-[ ] デバッグプリント関数dを追加
+[x] デバッグプリント関数dを追加
+    - 色などの書式はまた別途行いたい
 
-[ ] switch文でbreak使えて欲しいかもしれない
+[x] switch文でbreak使えて欲しいかもしれない
 
 [x] loop文に文字列を指定した時にループカウンタに数字が入るバグを修正
 
@@ -76,6 +101,7 @@
     - statsを評価する関数で注意する必要がある
 
 [ ] cvalueをbool値に変換するロジックを1箇所にまとめる
+    - [x] cvalue::to\_bool()を実装する
 
 [ ] exit,break,continueを処理するロジックを1箇所にまとめる
 

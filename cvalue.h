@@ -120,10 +120,14 @@ class cvalue
         return value_.a->at(index);
     }
 
+    bool to_bool() const;
     std::string to_string() const;
 
     bool operator == (cvalue const &obj) const;
-    bool operator != (cvalue const &obj) const;
+    bool operator != (cvalue const &obj) const
+    {
+        return !operator==(obj);
+    }
 
   private:
     void copy_members(cvalue const &obj)
