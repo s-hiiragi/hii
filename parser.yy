@@ -258,7 +258,7 @@ cont_stmt   : "cont"                        { $$ = new cnode(OP_CONT, nullptr); 
             ;
 
 break_stmt  : "break"                       { $$ = new cnode(OP_BREAK, nullptr); }
-            | "break" expr                  { $$ = new cnode(OP_BREAK, $2); }
+            | "break" "int"                 { $$ = new cnode(OP_BREAK, new cleaf(OP_INT, $2)); }
             ;
 
 exprs       : %empty                        { $$ = new clist(OP_EXPRS); }
