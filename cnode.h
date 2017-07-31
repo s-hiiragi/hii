@@ -191,9 +191,13 @@ class cnode
         eaction action_;
     };
 
+    // on_enterがfalseを返したら探索を終了する
     bool each(std::function<bool(cnode & node)> const & on_enter);
     bool each(std::function<bool(cnode const & node)> const & on_enter) const;
 
+    // on_enterがfalseを返したら探索を終了する
+    // ctrl.do_break()がコールされると、探索を終了する
+    // ctrl.skip_children()がコールされると、子要素の探索をスキップする
     bool each(std::function<bool(cctrl &ctrl, cnode &node)> const &on_enter, std::function<bool(cctrl &ctrl, cnode &node)> const &on_leave);
     bool each(std::function<bool(cctrl &ctrl, cnode const &node)> const &on_enter, std::function<bool(cctrl &ctrl, cnode const &node)> const &on_leave) const;
 
