@@ -1,5 +1,7 @@
 # 開発メモ
 
+[ ] fallthroughステートメント入れる？
+
 [ ] 関数内でloop/swの外側でbreak,continueを使うと呼び出し元のloop/swを抜けてしまう問題
     - loop/swの外側でbreak,continueを使っているかチェックする必要がある
     - 同様に関数の外でreturnを使っているかチェックする必要がある
