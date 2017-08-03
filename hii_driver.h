@@ -55,6 +55,16 @@ class hii_driver
         std::fprintf(stderr, format, args...);
     }
 
+    std::string & filename()
+    {
+        return file_;
+    }
+
+    std::string const & filename() const
+    {
+        return file_;
+    }
+
   private:
     void scan_begin();
     void scan_end();

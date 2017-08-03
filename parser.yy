@@ -348,7 +348,7 @@ attrs   : %empty                        { $$ = new clist(OP_ATTRS); }
 
 void yy::parser::error(const yy::parser::location_type &l, const std::string &m)
 {
-    driver.error("%p:%u:%u: error: %s", l.begin.filename, l.begin.line, l.begin.column, m.c_str());
-    //driver.error("%s:%u:%u: error: %s", l.begin.filename->c_str(), l.begin.line, l.begin.column, m.c_str());
+    //driver.error("%p:%u:%u: error: %s", l.begin.filename, l.begin.line, l.begin.column, m.c_str());
+    driver.error("%s:%u:%u: error: %s", l.begin.filename->c_str(), l.begin.line, l.begin.column, m.c_str());
 }
 

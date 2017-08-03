@@ -31,6 +31,7 @@ static unsigned int column = 1;
         yylloc->begin.line = yylloc->end.line = yylineno; \
         yylloc->begin.column = column; \
         yylloc->end.column = column + yyleng - 1; \
+        yylloc->begin.filename = yylloc->end.filename = &driver.filename(); \
         column += yyleng; \
     } while (0);
 %}
