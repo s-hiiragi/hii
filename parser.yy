@@ -16,6 +16,12 @@
 #pragma warning(disable: 4800)
 #pragma warning(disable: 4267)
 #endif
+
+#define PRINT_LOC(tok, loc) do { \
+        printf("[%s %d:%d,%d:%d]\n", (tok)->name(), \
+            (loc).begin.line, (loc).begin.column, \
+            (loc).end.line, (loc).end.column); \
+    } while (0);
 %}
 // The parsing context.
 %parse-param { hii_driver& driver }
@@ -162,13 +168,13 @@ unit    : stats                         { driver.set_ast($1); }
 stats   : '\n'                          { $$ = new clist(OP_STATS); }
         | mcmnt '\n'                    { $$ = new clist(OP_STATS, $1); }
         | rcmnt '\n'                    { $$ = new clist(OP_STATS, $1); }
-        | stat '\n'                     { $$ = new clist(OP_STATS, $1); }
-        | stat tcmnt '\n'               { $$ = new clist(OP_STATS, $1); $$->add($2); }
+        | stat '\n'                     { $$ = new clist(OP_STATS, $1); PRINT_LOC($1, @1); }
+        | stat tcmnt '\n'               { $$ = new clist(OP_STATS, $1); $$->add($2); PRINT_LOC($1, @1); }
         | stats '\n'                    { $$ = $1; }
         | stats mcmnt '\n'              { $1->add($2); $$ = $1; }
         | stats rcmnt '\n'              { $1->add($2); $$ = $1; }
-        | stats stat '\n'               { $1->add($2); $$ = $1; }
-        | stats stat tcmnt '\n'         { $1->add($2); $1->add($3); $$ = $1; }
+        | stats stat '\n'               { $1->add($2); $$ = $1; PRINT_LOC($2, @2); }
+        | stats stat tcmnt '\n'         { $1->add($2); $1->add($3); $$ = $1; PRINT_LOC($2, @2); }
         ;
 
 mcmnt   : lcmnt                         { $$ = new clist(OP_MCOMMENT, $1); }
@@ -345,11 +351,4 @@ void yy::parser::error(const yy::parser::location_type &l, const std::string &m)
     driver.error("%p:%u:%u: error: %s", l.begin.filename, l.begin.line, l.begin.column, m.c_str());
     //driver.error("%s:%u:%u: error: %s", l.begin.filename->c_str(), l.begin.line, l.begin.column, m.c_str());
 }
-
-/*
-void yy::parser::error(const std::string & m)
-{
-    driver.error(m.c_str());
-}
-*/
 

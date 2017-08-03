@@ -19,6 +19,20 @@
 #define yywrap() 1
 
 #define yyterminate()   return token::TK_EOF
+
+static unsigned int column = 1;
+
+// TODO 改行トークンのcolumnが1にならない
+#define YY_USER_ACTION  do { \
+        if (0) { \
+        printf("YY_USER_ACTION: yytext=%s, yylineno=%d, yyleng=%lu, column=%u\n", \
+            yytext[0] == '\n' ? "<NL>" : yytext, yylineno, yyleng, column); \
+        } \
+        yylloc->begin.line = yylloc->end.line = yylineno; \
+        yylloc->begin.column = column; \
+        yylloc->end.column = column + yyleng - 1; \
+        column += yyleng; \
+    } while (0);
 %}
 
 %option noyywrap nounput batch
@@ -27,6 +41,9 @@
 %option noyy_scan_bytes
 %option noyy_scan_string
 %option nounistd
+%option yylineno
+%option bison-bridge
+%option bison-locations
 
 var    \$[a-zA-Z_][a-zA-Z_0-9]*
 id     [a-zA-Z_][a-zA-Z_0-9]*
@@ -76,7 +93,12 @@ lcmnt   #[^\n]*
 ">="     return token::TK_GTEQ;
 "and"    return token::TK_AND;
 "or"     return token::TK_OR;
-[-+*/%=()\n,<>\[\]@?:]  return yy::parser::token_type(yytext[0]);
+[-+*/%=(),<>\[\]@?:]  return yy::parser::token_type(yytext[0]);
+
+\n              {
+                    column = 1;
+                    return yy::parser::token_type(yytext[0]);
+                }
 
 {blank}+        ;
 {rcmnt}         {

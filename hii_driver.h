@@ -12,11 +12,14 @@
 
 class hii_driver;
 
-#define YY_DECL                                    \
-    yy::parser::token_type                         \
-    yylex(yy::parser::semantic_type* yylval,       \
-          yy::parser::location_type* location,     \
+#define YY_DECL                                     \
+    yy::parser::token_type                          \
+    yylex(yy::parser::semantic_type* yylval_param,  \
+          yy::parser::location_type* yylloc_param,  \
           hii_driver& driver)
+
+#define YYSTYPE yy::parser::semantic_type
+#define YYLTYPE yy::parser::location_type
 
 YY_DECL;
 

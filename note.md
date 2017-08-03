@@ -1,5 +1,19 @@
 # 開発メモ
 
+[x] parserのルール内で@n.begin.lineを表示しても1としか表示されない問題
+    - hii\_driver.h 修正
+        - YYSTYPE, YYLTYPEを定義
+    - parser.ll 修正
+        - %option yylineno
+            - flexが\nを検出してyylinenoをインクリメントするコードを生成
+        - %option bison-bridge
+        - %option bison-locations
+        - columnを定義
+        - \nのアクションでcolumnを1にリセット
+        - YY_USER_ACTIONを定義
+            - yyllocに行番号(yylineno)、列番号(column)をセット
+            - columnをyylengだけ進める
+
 [ ] fallthroughステートメント入れる？
 
 [ ] 関数内でloop/swの外側でbreak,continueを使うと呼び出し元のloop/swを抜けてしまう問題
