@@ -122,7 +122,6 @@ lcmnt   #[^\n]*
                     return token::TK_INT;
                 }
 {str}           {
-                    // TODO ""を除去する
                     yylval->sval = new std::string(yytext, 1, std::strlen(yytext)-2);
                     return token::TK_STR;
                 }

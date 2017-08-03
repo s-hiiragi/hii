@@ -38,6 +38,14 @@ bool hii_driver::exec(const string &f, vector<string> &args)
         scopes_.back().add_var(string("sys_args"), cvalue(arg_values), false);
     }
 
+    // 構文チェック
+    clog::i("### check syntax: starting ###");
+    if (!check_syntax(*ast_)) {
+        clog::e("check_syntax failed");
+        return false;
+    }
+    clog::i("### check syntax: finished ###");
+
     // 名前解決
     clog::i("### resolve names: starting ###");
     resolve_names(*ast_);
@@ -90,6 +98,109 @@ void hii_driver::set_ast(cnode *ast)
     clog::d("set_ast");
 
     cnode::print(ast);
+}
+
+/* 構文チェック
+ * 
+ * チェック項目
+ * - returnがfunの中にあるか
+ * - break,continueがloop/swの中にあるか
+ */
+bool hii_driver::check_syntax(cnode &node)
+{
+    bool result = true;
+    int fun_count = 0;
+    vector<int> loop_counts = {0};
+    vector<int> sw_counts = {0};
+
+    auto on_enter = [&](cnode::cctrl &ctrl, cnode &n) -> bool {
+        switch (n.op())
+        {
+        case OP_FUN:
+            fun_count++;
+            // sw_count, loop_countを退避する
+            sw_counts.push_back(0);
+            loop_counts.push_back(0);
+            break;
+        case OP_SW:
+            sw_counts.back()++;
+            break;
+        case OP_LOOP:
+            loop_counts.back()++;
+            break;
+        case OP_RET:
+            if (fun_count <= 0) {
+                clog::e("retは関数の外では使用できません: fun_count=%d", fun_count);
+                result = false;
+            }
+            break;
+        case OP_CONT:
+            if (loop_counts.back() <= 0) {
+                clog::e("contはloopの外では使用できません: loop_count=%d", loop_counts.back());
+                result = false;
+            }
+            break;
+        case OP_BREAK:
+            if (sw_counts.back() <= 0 && loop_counts.back() <= 0) {
+                clog::e("breakはswまたはloopの外では使用できません: sw_count=%d, loop_count=%d", 
+                    sw_counts.back(), loop_counts.back());
+                result = false;
+            }
+            break;
+        case OP_MCOMMENT:
+            {
+                auto const *comments = static_cast<clist const *>(&n);
+                comments->each([](cnode const &n2) {
+                    auto &&v = static_cast<cleaf const &>(n2);
+                    cout << "  \e[32m" << v.sval() << "\e[00m" << endl;
+                    return true;
+                });
+            }
+            break;
+        }
+        return true;
+    };
+    auto on_leave = [&](cnode::cctrl &ctrl, cnode &n) -> bool {
+        switch (n.op())
+        {
+        case OP_FUN:
+            // sw_count, loop_countを復元する
+            sw_counts.pop_back();
+            loop_counts.pop_back();
+            fun_count--;
+            break;
+        case OP_SW:
+            sw_counts.back()--;
+            break;
+        case OP_LOOP:
+            loop_counts.back()--;
+            break;
+        }
+        return true;
+    };
+
+    node.each(on_enter, on_leave);
+
+    if (fun_count != 0) {
+        clog::e("fun_count = %d", fun_count);
+        return false;
+    }
+    if (sw_counts.size() != 1 || sw_counts.back() != 0) {
+        clog::e("loop_counts: size=%zu", loop_counts.size());
+        if (sw_counts.size() >= 1) {
+            clog::e("loop_counts: back.count=%d", loop_counts.back());
+        }
+        return false;
+    }
+    if (loop_counts.size() != 1 || loop_counts.back() != 0) {
+        clog::e("loop_counts: size=%zu", loop_counts.size());
+        if (loop_counts.size() >= 1) {
+            clog::e("loop_counts: back.count=%d", loop_counts.back());
+        }
+        return false;
+    }
+
+    return result;
 }
 
 /* 名前解決

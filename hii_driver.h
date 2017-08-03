@@ -61,6 +61,7 @@ class hii_driver
 
     bool parse(std::string const &file);
 
+    bool check_syntax(cnode &node);
     bool resolve_names(cnode &node);
 
     bool def_var(cnode const *node);
