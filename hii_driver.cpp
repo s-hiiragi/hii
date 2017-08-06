@@ -1877,6 +1877,7 @@ cvalue hii_driver::eval_str(cnode const *node)
 {
     auto const &str = static_cast<cleaf const *>(node)->sval();
 
+    // エスケープシーケンスの処理
     stringstream ss;
     auto it = str.begin();
     while (it != str.end())
@@ -1899,6 +1900,7 @@ cvalue hii_driver::eval_str(cnode const *node)
         case 'r': ss << '\r'; it++; break;
         case 'n': ss << '\n'; it++; break;
         case '{':
+            // 埋め込まれた変数を展開する
             it++;
             if (it == str.end()) {
                 ss << '{';
