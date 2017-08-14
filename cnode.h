@@ -78,6 +78,20 @@ typedef enum node_type_
     // スライス
     OP_SLICE,
 
+    // 辞書関連
+    OP_DICT,
+    OP_PAIRS,
+    OP_PAIR,
+
+    // 辞書の要素
+    OP_DICTITEM,
+
+    // 変数関連
+    OP_VAR_EXPR,
+    OP_INDEXES,
+    OP_ARRAY_INDEX,
+    OP_DICT_INDEX,
+
     // リテラル
     OP_INT,
     OP_STR,

@@ -104,6 +104,8 @@
 %type <node>    slice_expr
 %type <list>    exprs
 %type <node>    var_expr
+%type <list>    indexes
+%type <node>    index
 %type <list>    some_exprs
 %type <list>    args
 %type <node>    id
@@ -112,6 +114,8 @@
 %type <node>    lcmnt
 %type <node>    tcmnt
 %type <node>    rcmnt
+%type <list>    pairs
+%type <node>    pair
 /*
 %type <list>    attrs
 */
@@ -142,6 +146,9 @@
 %destructor { delete $$; } expr
 %destructor { delete $$; } slice_expr
 %destructor { delete $$; } exprs
+%destructor { delete $$; } var_expr
+%destructor { delete $$; } indexes
+%destructor { delete $$; } index
 %destructor { delete $$; } some_exprs
 %destructor { delete $$; } args
 %destructor { delete $$; } id
@@ -150,6 +157,8 @@
 %destructor { delete $$; } lcmnt
 %destructor { delete $$; } tcmnt
 %destructor { delete $$; } rcmnt
+%destructor { delete $$; } pairs
+%destructor { delete $$; } pair
 
 %left "or";
 %left "and";
@@ -293,6 +302,8 @@ expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); 
             | '(' expr ')'                  { $$ = $2; }
             | '[' exprs ']'                 { $$ = new cnode(OP_ARRAY, $2); }
             | expr '[' expr ']'             { $$ = new cnode(OP_ELEMENT, $1, $3); }
+            | '[' pairs ']'                 { $$ = new cnode(OP_DICT, $2); }
+            | idvar '.' id                  { $$ = new cnode(OP_DICTITEM, $1, $3); }
             | slice_expr                    { $$ = $1; }
             | id some_exprs                 { $$ = new cnode(OP_CALLEXPR, $1, $2); }
             | idvar                         { $$ = $1; }
@@ -300,14 +311,36 @@ expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); 
             | "str"                         { $$ = new cleaf(OP_STR, $1); }
             ;
 
+/*
 var_expr    : var                           { $$ = $1; }
-            | var '[' expr ']'              { $$ = new cnode(OP_ELEMENT, $1, $3); }
+            | var_expr '[' expr ']'         { $$ = new cnode(OP_ELEMENT, $1, $3); }
+            | var_expr '.' id               { $$ = new cnode(OP_DICTITEM, $1, $3); }
+            ;
+*/
+
+var_expr    : var indexes                   { $$ = new cnode(OP_VAR_EXPR, $1, $2); }
+            ;
+
+indexes     : %empty                        { $$ = new clist(OP_INDEXES); }
+            | index                         { $$ = new clist(OP_INDEXES, $1); }
+            | indexes index                 { $1->add($2); $$ = $1; }
+            ;
+
+index       : '[' expr ']'                  { $$ = new cnode(OP_ARRAY_INDEX, $2); }
+            | '.' id                        { $$ = new cnode(OP_DICT_INDEX, $2); }
             ;
 
 slice_expr  : expr '[' ':' ']'              { $$ = new cnode(OP_SLICE, $1, new cnode(OP_NODE, nullptr, nullptr)); }
             | expr '[' ':' expr ']'         { $$ = new cnode(OP_SLICE, $1, new cnode(OP_NODE, nullptr, $4)); }
             | expr '[' expr ':' ']'         { $$ = new cnode(OP_SLICE, $1, new cnode(OP_NODE, $3, nullptr)); }
             | expr '[' expr ':' expr ']'    { $$ = new cnode(OP_SLICE, $1, new cnode(OP_NODE, $3, $5)); }
+            ;
+
+pairs       : pair                          { $$ = new clist(OP_PAIRS, $1); }
+            | pairs ',' pair                { $1->add($3); $$ = $1; }
+            ;
+
+pair        : id ':' expr                   { $$ = new cnode(OP_PAIR, $1, $3); }
             ;
 
 /*

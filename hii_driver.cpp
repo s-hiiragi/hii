@@ -1,3 +1,4 @@
+#include <utility>
 #include <string>
 #include <iostream>
 #include <iomanip>
@@ -10,14 +11,17 @@
 #include "cnode.h"
 #include "cleaf.h"
 #include "cscope.h"
-#include "clog.h"
 #include "cvalue.h"
+#include "error.h"
+#include "clog.h"
 
 using std::cin;
 using std::cout;
 using std::endl;
+using std::map;
 using std::vector;
 using std::string;
+using std::make_pair;
 using std::stringstream;
 using my::clog;
 
@@ -501,18 +505,129 @@ cvalue hii_driver::eval_assign(cnode const *node)
     return cvalue();
 }
 
+/**
+ * スコープを順に遡って変数を取得する
+ *
+ * @param[in] varname  変数名
+ *
+ * @retval  cvalue*の値  取得成功
+ * @retval  error_info   取得失敗 (変数が定義されていない)
+ * @retval  error_info   取得失敗 (定数名が指定された)
+ */
+my::expected<cvalue *> hii_driver::get_var(string const &varname)
+{
+    // 変数を探す
+
+    bool defined = false;
+    auto it = scopes_.rbegin();
+    for (; it != scopes_.rend(); it++) {
+        if (it->has_var(varname)) {
+            defined = true;
+            break;
+        }
+    }
+    if (!defined) {
+        return my::error_info("変数%sは定義されていません", varname.c_str());
+    }
+    if (!it->is_writable(varname)) {
+        return my::error_info("%sは定数です", varname.c_str());
+    }
+
+    return &it->get_var(varname);
+}
+
+/**
+ * 変数から順にインデックスを適用し要素を取得する
+ * 
+ * @param[in] varname  変数名
+ * @param[in] indexes  インデックス(添字またはキー)のリスト
+ * 
+ * @retval cvalue*の値  取得成功
+ * @retval x            取得失敗 (変数が未定義)
+ * @retval y            取得失敗 (varnameは定数であるため
+ */
+my::expected<cvalue *> hii_driver::get_var_element(cvalue *var, clist const &indexes)
+{
+    // 変更対象の要素を取得
+
+    my::expected<> e = my::dummy_value();
+    indexes.each([&](cnode const &n) {
+        switch (n.op())
+        {
+        case OP_ARRAY_INDEX:
+            {
+                // 親要素が配列型かチェック
+                if (!var->is_ary()) {
+                    e = my::error_info("親要素が配列型ではありません (type=%s)", var->type_name().c_str());
+                    return false;
+                }
+
+                // 添字を評価
+                cvalue &&index = eval(n.left());
+
+                // 添字の型をチェック
+                if (!index.is_int()) {
+                    e = my::error_info("添字が数値型ではありません (type=%s)", index.type_name().c_str());
+                    return false;
+                }
+
+                // 添字を非負整数に変換
+                size_t size = var->a().size();
+                size_t forward_index = cvalue::to_positive_index(index.i(), size);
+
+                // 添字の範囲をチェック
+                if (forward_index >= size) {
+                    e = my::error_info("添字が配列の範囲外です (index=%d, range=0..%zu)", index.i(), size);
+                    return false;
+                }
+
+                // 要素を取得
+                var = &var->a(forward_index);
+            }
+            break;
+        case OP_DICT_INDEX:
+            {
+                // 親要素が辞書型かチェック
+                if (!var->is_dict()) {
+                    e = my::error_info("親要素が辞書型ではありません (type=%s)", var->type_name().c_str());
+                    return false;
+                }
+
+                // キーが存在するかチェック
+                string const &key = static_cast<cleaf const *>(n.left())->sval();
+                if (var->d().find(key) == var->d().end()) {
+                    e = my::error_info("キー%sが見つかりません", key.c_str());
+                    return false;
+                }
+
+                // 要素を取得
+                var = &var->d(key);
+            }
+            break;
+        default:
+            clog::e("invalid index node: node=%s", n.name());
+            throw std::logic_error("invalid index node");
+        }
+        return true;
+    });
+    if (e) {
+        return e.error();
+    }
+
+    return var;
+}
+
 cvalue hii_driver::eval_reassign(cnode const *node)
 {
-    auto const *lhs = node->left();
+    auto const &varname = static_cast<cleaf const *>(node->left()->left())->sval();
+    auto const &indexes = *static_cast<clist const *>(node->left()->right());
     auto const *expr = node->right();
-
-    auto const &varname = (lhs->op() == OP_VAR) ?
-        static_cast<cleaf const *>(lhs)->sval() :
-        static_cast<cleaf const *>(lhs->left())->sval();
+    cnode const *lhs = nullptr;
 
     clog::d("reassign name=%s", varname.c_str());
 
     // 変数を探す
+
     bool defined = false;
     auto it = scopes_.rbegin();
     for (; it != scopes_.rend(); it++) {
@@ -530,51 +645,83 @@ cvalue hii_driver::eval_reassign(cnode const *node)
         return cvalue();
     }
 
-    auto &var = it->get_var(varname);
+    // 変更対象の要素を取得
 
-    if (lhs->op() == OP_VAR) {
-        // 式を評価
-        cvalue val = eval(expr);
+    auto *var = &it->get_var(varname);
+    bool failed = false;
+    indexes.each([&](cnode const &n) {
+        switch (n.op())
+        {
+        case OP_ARRAY_INDEX:
+            {
+                // 親要素が配列型かチェック
+                if (!var->is_ary()) {
+                    clog::e("親要素が配列型ではありません (var=%s type=%s)", varname.c_str(), var->type_name());
+                    failed = true;
+                    return false;
+                }
 
-        // 変数の値を上書き
-        it->add_var(varname, val, true);
-    } else {
-        // 配列型変数かチェック
-        if (!var.is_ary()) {
-            clog::e("%sは配列型変数ではありません", varname.c_str());
-            return cvalue();
+                // 添字を評価
+                cvalue &&index = eval(n.left());
+
+                // 添字の型をチェック
+                if (!index.is_int()) {
+                    clog::e("添字が数値型ではありません (type=%s)", index.type_name().c_str());
+                    failed = true;
+                    return false;
+                }
+
+                // 添字を非負整数に変換
+                size_t size = var->a().size();
+                size_t forward_index = cvalue::to_positive_index(index.i(), size);
+
+                // 添字の範囲をチェック
+                if (forward_index >= size) {
+                    clog::e("添字(%d)が配列(0..%zu)の範囲外です", index.i(), size);
+                    failed = true;
+                    return false;
+                }
+
+                // 要素を取得
+                var = &var->a(forward_index);
+            }
+            break;
+        case OP_DICT_INDEX:
+            {
+                // 親要素が辞書型かチェック
+                if (!var->is_dict()) {
+                    clog::e("親要素が辞書型ではありません (var=%s type=%s)", varname.c_str(), var->type_name());
+                    failed = true;
+                    return false;
+                }
+
+                // キーが存在するかチェック
+                string const &key = static_cast<cleaf const *>(n.left())->sval();
+                if (var->d().find(key) == var->d().end()) {
+                    clog::d("キー%sが見つかりません", key.c_str());
+                    failed = true;
+                    return false;
+                }
+
+                // 要素を取得
+                var = &var->d(key);
+            }
+            break;
+        default:
+            clog::e("invalid index node: node=%s", n.name());
+            throw std::logic_error("invalid index node");
         }
-
-        // 添字の評価
-        cvalue index = eval(lhs->right());
-
-        // 添字の型チェック
-        if (!index.is_int()) {
-            clog::e("添字の型(%s)が数値ではありません", index.type_name().c_str());
-            return cvalue();
-        }
-
-        // 添字の範囲チェック
-        size_t size = var.a().size();
-        size_t fixed_index = cvalue::to_positive_index(index.i(), size);
-        if (fixed_index >= size) {
-            clog::e("添字(%d)が配列(0..%zu)の範囲外です", index.i(), var.a().size());
-            return cvalue();
-        }
-
-        // 式を評価
-        cvalue val = eval(expr);
-
-        // 配列の型と値の型の比較
-        if (var.a(fixed_index).type() != val.type()) {
-            clog::e("配列の要素の型(%s)と値の型(%s)が一致しません", 
-                var.a(fixed_index).type_name().c_str(), val.type_name().c_str());
-            return cvalue();
-        }
-
-        // 要素の変更
-        var.a(fixed_index) = val;
+        return true;
+    });
+    if (failed) {
+        return cvalue();
     }
+
+    // 式を評価
+    cvalue &&val = eval(expr);
+
+    // 要素を更新
+    *var = val;
 
     return cvalue();
 }
@@ -608,10 +755,12 @@ cvalue hii_driver::eval_op1stat(cnode const *node)
 
     auto &var = it->get_var(varname);
 
-    if (!var.is_int() && !var.is_ary()) {
-        clog::e("変数%sは数値型または配列型ではないため計算できません", varname.c_str());
+    if (!var.is_int() && !var.is_ary() && !var.is_dict()) {
+        clog::e("変数%sはインクリメント/デクリメントできない型です (type=%s)", varname.c_str(), var.type_name().c_str());
         return cvalue();
     }
+
+    // 演算処理と変数の更新
 
     if (var.is_int()) {
         int res;
@@ -626,7 +775,7 @@ cvalue hii_driver::eval_op1stat(cnode const *node)
             it->add_var(varname, cvalue(res), true);
             break;
         }
-    } else {
+    } else if (var.is_ary()) {
         // 添字が指定されているかチェック
         if (node->left()->op() != OP_ELEMENT) {
             clog::e("添字が指定されていません");
@@ -661,6 +810,8 @@ cvalue hii_driver::eval_op1stat(cnode const *node)
             var.a(fixed_index) = var.a(fixed_index).i() - 1;
             break;
         }
+    } else if (var.is_dict()) {
+
     }
 
     return cvalue();
@@ -773,7 +924,7 @@ cvalue hii_driver::eval_op2stat(cnode const *node)
             }
             break;
         default:
-            throw new std::logic_error("invalid node type");
+            throw std::logic_error("invalid node type");
             break;
         }
     } else {
@@ -870,7 +1021,7 @@ cvalue hii_driver::eval_op2stat(cnode const *node)
             }
             break;
         default:
-            throw new std::logic_error("invalid node type");
+            throw std::logic_error("invalid node type");
             break;
         }
     }
@@ -1873,6 +2024,53 @@ cvalue hii_driver::eval_array(cnode const *node)
     return cvalue(elements);
 }
 
+cvalue hii_driver::eval_dict(cnode const *node)
+{
+    clist const &pair_list = *static_cast<clist const *>(node->left());
+
+    map<string, cvalue> pairs;
+
+    pair_list.each([&](cnode const &n){
+        string const & key = static_cast<cleaf const *>(n.left())->sval();
+        auto && value = eval(n.right());
+        pairs.insert(make_pair(key, value));
+        return true;
+    });
+
+    return cvalue(pairs);
+}
+
+cvalue hii_driver::eval_dictitem(cnode const *node)
+{
+    string const & varname = static_cast<cleaf const *>(node->left())->sval();
+    string const & key = static_cast<cleaf const *>(node->right())->sval();
+
+    clog::d("eval_dictitem: Enter (var=%s, key=%s)", varname.c_str(), key.c_str());
+
+    // 変数を探す
+    auto b = find_if(scopes_.rbegin(), scopes_.rend(), 
+        [&](cscope &s){ return s.has_var(varname); });
+
+    if (b == scopes_.rend()) {
+        clog::e("変数%sが見つかりません", varname.c_str());
+        return cvalue();
+    }
+
+    auto &&v = b->get_var(varname);
+
+    if (!v.is_dict()) {
+        clog::e("指定された変数は辞書型ではありません (type=%s)", v.type_name().c_str());
+        return cvalue();
+    }
+
+    if (v.d().find(key) == v.d().end()) {
+        clog::e("指定したキーが見つかりません");
+        return cvalue();
+    }
+
+    return v.d(key);
+}
+
 cvalue hii_driver::eval_str(cnode const *node)
 {
     auto const &str = static_cast<cleaf const *>(node)->sval();
@@ -2034,6 +2232,10 @@ cvalue hii_driver::eval(cnode const *node)
         return eval_str(node);
     case OP_ARRAY:
         return eval_array(node);
+    case OP_DICT:
+        return eval_dict(node);
+    case OP_DICTITEM:
+        return eval_dictitem(node);
     default:
         std::fprintf(stderr, "評価方法が未定義です: op=%s\n", node->name());
         throw std::logic_error("評価方法が未定義です");

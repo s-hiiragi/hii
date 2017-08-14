@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <string>
 #include <vector>
 #include <stdexcept>
@@ -12,7 +13,8 @@ class cvalue
         VOID,
         INTEGER,
         STRING,
-        ARRAY
+        ARRAY,
+        DICT
         // BOOLEAN 欲しい
         // INTEGER -> NUMBERにしたい(実数も扱いたい)
     };
@@ -33,6 +35,9 @@ class cvalue
 
     cvalue(std::vector<cvalue> &&a)
         : type_(ARRAY) { value_.a = new std::vector<cvalue>(std::move(a)); }
+
+    cvalue(std::map<std::string, cvalue> const &d)
+        : type_(DICT) { value_.d = new std::map<std::string, cvalue>(d); }
 
     cvalue(cvalue const &obj)
         : type_(VOID)
@@ -60,6 +65,11 @@ class cvalue
             value_.a = obj.value_.a;
             obj.value_.a = nullptr;
             break;
+        case DICT:
+            type_ = DICT;
+            value_.d = obj.value_.d;
+            obj.value_.d = nullptr;
+            break;
         default:
             throw std::logic_error("invalid type");
         }
@@ -70,6 +80,7 @@ class cvalue
     {
         if (is_str()) delete value_.s;
         if (is_ary()) delete value_.a;
+        if (is_dict()) delete value_.d;
     }
 
     cvalue & operator=(cvalue const &obj)
@@ -85,6 +96,7 @@ class cvalue
     bool is_int() const { return type_ == INTEGER; }
     bool is_str() const { return type_ == STRING; }
     bool is_ary() const { return type_ == ARRAY; }
+    bool is_dict() const { return type_ == DICT; }
 
     std::string type_name() const
     {
@@ -97,6 +109,8 @@ class cvalue
             return "str";
         case ARRAY:
             return "ary";
+        case DICT:
+            return "dict";
         default:
             throw std::logic_error("invalid type");
         }
@@ -118,6 +132,19 @@ class cvalue
     cvalue const & a(size_t index) const
     {
         return value_.a->at(index);
+    }
+
+    std::map<std::string, cvalue> & d() { return *value_.d; }
+    std::map<std::string, cvalue> const & d() const { return *value_.d; }
+
+    cvalue & d(std::string const & key)
+    {
+        return const_cast<cvalue &>(const_cast<cvalue const *>(this)->d(key));
+    }
+
+    cvalue const & d(std::string const & key) const
+    {
+        return value_.d->at(key);
     }
 
     bool to_bool() const;
@@ -146,8 +173,12 @@ class cvalue
             delete value_.a;
             value_.a = nullptr;
             break;
+        case DICT:
+            delete value_.d;
+            value_.d = nullptr;
+            break;
         }
-
+        
         type_ = obj.type();
         switch (obj.type())
         {
@@ -162,6 +193,9 @@ class cvalue
         case ARRAY:
             value_.a = new std::vector<cvalue>(obj.a());
             break;
+        case DICT:
+            value_.d = new std::map<std::string, cvalue>(obj.d());
+            break;
         }
     }
 
@@ -170,6 +204,7 @@ class cvalue
         int i;
         std::string *s;
         std::vector<cvalue> *a;
+        std::map<std::string, cvalue> *d;
     } value_;
 };
 

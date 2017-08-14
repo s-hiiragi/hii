@@ -94,7 +94,7 @@ lcmnt   #[^\n]*
 ">="     return token::TK_GTEQ;
 "and"    return token::TK_AND;
 "or"     return token::TK_OR;
-[-+*/%=(),<>\[\]@?:]  return yy::parser::token_type(yytext[0]);
+[-+*/%=(),<>\[\]@?:.]  return yy::parser::token_type(yytext[0]);
 
 \n              {
                     column = 1;

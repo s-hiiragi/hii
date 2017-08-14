@@ -9,6 +9,7 @@
 #include "cleaf.h"
 #include "cscope.h"
 #include "cvalue.h"
+#include "error.h"
 
 class hii_driver;
 
@@ -94,9 +95,14 @@ class hii_driver
     cvalue eval_op2(cnode const *node);
     cvalue eval_id(cnode const *node);
     cvalue eval_array(cnode const *node);
+    cvalue eval_dict(cnode const *node);
+    cvalue eval_dictitem(cnode const *node);
     cvalue eval_slice(cnode const *node);
     cvalue eval_str(cnode const *node);
     cvalue eval(cnode const *node);
+
+    my::expected<cvalue *> get_var(std::string const &varname);
+    my::expected<cvalue *> get_var_element(cvalue *var, clist const &indexes);
     
     // for debug
     void print_scopes()

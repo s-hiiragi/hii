@@ -1,7 +1,7 @@
 PROG     = hii
 OUT_DIR  = out
 CPPFLAGS = -DYYERROR_VERBOSE
-CXXFLAGS = -std=c++11
+CXXFLAGS = -std=c++17
 
 SRCS       = $(wildcard *.cpp)
 FLEX_SRCS  = $(wildcard *.ll)

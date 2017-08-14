@@ -113,6 +113,14 @@ const char * cnode::name() const
     case OP_ARRAY:        return "ARRAY";        break;
     case OP_ELEMENT:      return "ELEMENT";      break;
     case OP_SLICE:        return "SLICE";        break;
+    case OP_DICT:         return "DICT";         break;
+    case OP_DICTITEM:     return "DICTITEM";     break;
+    case OP_VAR_EXPR:     return "VAR_EXPR";     break;
+    case OP_INDEXES:      return "INDEXES";      break;
+    case OP_ARRAY_INDEX:  return "ARRAY_INDEX";  break;
+    case OP_DICT_INDEX:   return "DICT_INDEX";   break;
+    case OP_PAIRS:        return "PAIRS";        break;
+    case OP_PAIR:         return "PAIR";         break;
     case OP_ATTRS:        return "ATTRS";        break;
     case OP_EMPTY:        return "EMPTY";        break;
     default:              return "unknown";      break;
