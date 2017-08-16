@@ -17,11 +17,14 @@
 #pragma warning(disable: 4267)
 #endif
 
+/*
 #define PRINT_LOC(tok, loc) do { \
         printf("[%s %d:%d,%d:%d]\n", (tok)->name(), \
             (loc).begin.line, (loc).begin.column, \
             (loc).end.line, (loc).end.column); \
     } while (0);
+*/
+#define PRINT_LOC(tok, loc)
 %}
 // The parsing context.
 %parse-param { hii_driver& driver }

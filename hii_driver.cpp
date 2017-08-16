@@ -1,11 +1,12 @@
-#include <utility>
-#include <string>
-#include <iostream>
-#include <iomanip>
 #include <algorithm>
 #include <cassert>
 #include <cstdio>
+#include <iomanip>
+#include <iostream>
 #include <sstream>
+#include <stdexcept>
+#include <string>
+#include <utility>
 #include "hii_driver.h"
 #include "parser.hh"
 #include "cnode.h"
@@ -23,6 +24,7 @@ using std::vector;
 using std::string;
 using std::make_pair;
 using std::stringstream;
+using std::logic_error;
 using my::clog;
 
 /**
@@ -542,14 +544,13 @@ my::expected<cvalue *> hii_driver::get_var(string const &varname)
  * @param[in] varname  変数名
  * @param[in] indexes  インデックス(添字またはキー)のリスト
  * 
- * @retval cvalue*の値  取得成功
- * @retval x            取得失敗 (変数が未定義)
- * @retval y            取得失敗 (varnameは定数であるため
+ * @retval true, cvalue*値      取得成功
+ * @retval false, error_info値  取得失敗 (変数が未定義)
+ * @retval false, error_info値  取得失敗 (varnameは定数であるため
  */
 my::expected<cvalue *> hii_driver::get_var_element(cvalue *var, clist const &indexes)
 {
     // 変更対象の要素を取得
-
     my::expected<> e = my::dummy_value();
     indexes.each([&](cnode const &n) {
         switch (n.op())
@@ -610,7 +611,7 @@ my::expected<cvalue *> hii_driver::get_var_element(cvalue *var, clist const &ind
         }
         return true;
     });
-    if (e) {
+    if (!e) {
         return e.error();
     }
 
@@ -622,197 +623,81 @@ cvalue hii_driver::eval_reassign(cnode const *node)
     auto const &varname = static_cast<cleaf const *>(node->left()->left())->sval();
     auto const &indexes = *static_cast<clist const *>(node->left()->right());
     auto const *expr = node->right();
-    cnode const *lhs = nullptr;
 
     clog::d("reassign name=%s", varname.c_str());
 
     // 変数を探す
 
-    bool defined = false;
-    auto it = scopes_.rbegin();
-    for (; it != scopes_.rend(); it++) {
-        if (it->has_var(varname)) {
-            defined = true;
-            break;
-        }
-    }
-    if (!defined) {
-        clog::e("変数%sは定義されていません", varname.c_str());
+    auto r = get_var(varname);
+    if (!r) {
+        // TODO varnameが定数を指している場合、定数だから代入できないと補足説明したい
+        clog::e("%s", r.error().message().c_str());
         return cvalue();
     }
-    if (!it->is_writable(varname)) {
-        clog::e("%sは定数のため代入できません", varname.c_str());
-        return cvalue();
-    }
+    cvalue *var = r.value();
 
     // 変更対象の要素を取得
-
-    auto *var = &it->get_var(varname);
-    bool failed = false;
-    indexes.each([&](cnode const &n) {
-        switch (n.op())
-        {
-        case OP_ARRAY_INDEX:
-            {
-                // 親要素が配列型かチェック
-                if (!var->is_ary()) {
-                    clog::e("親要素が配列型ではありません (var=%s type=%s)", varname.c_str(), var->type_name());
-                    failed = true;
-                    return false;
-                }
-
-                // 添字を評価
-                cvalue &&index = eval(n.left());
-
-                // 添字の型をチェック
-                if (!index.is_int()) {
-                    clog::e("添字が数値型ではありません (type=%s)", index.type_name().c_str());
-                    failed = true;
-                    return false;
-                }
-
-                // 添字を非負整数に変換
-                size_t size = var->a().size();
-                size_t forward_index = cvalue::to_positive_index(index.i(), size);
-
-                // 添字の範囲をチェック
-                if (forward_index >= size) {
-                    clog::e("添字(%d)が配列(0..%zu)の範囲外です", index.i(), size);
-                    failed = true;
-                    return false;
-                }
-
-                // 要素を取得
-                var = &var->a(forward_index);
-            }
-            break;
-        case OP_DICT_INDEX:
-            {
-                // 親要素が辞書型かチェック
-                if (!var->is_dict()) {
-                    clog::e("親要素が辞書型ではありません (var=%s type=%s)", varname.c_str(), var->type_name());
-                    failed = true;
-                    return false;
-                }
-
-                // キーが存在するかチェック
-                string const &key = static_cast<cleaf const *>(n.left())->sval();
-                if (var->d().find(key) == var->d().end()) {
-                    clog::d("キー%sが見つかりません", key.c_str());
-                    failed = true;
-                    return false;
-                }
-
-                // 要素を取得
-                var = &var->d(key);
-            }
-            break;
-        default:
-            clog::e("invalid index node: node=%s", n.name());
-            throw std::logic_error("invalid index node");
-        }
-        return true;
-    });
-    if (failed) {
+    auto r2 = get_var_element(var, indexes);
+    if (!r2) {
+        clog::e("%s", r2.error().message().c_str());
         return cvalue();
     }
+    cvalue *elem = r2.value();
 
     // 式を評価
     cvalue &&val = eval(expr);
 
     // 要素を更新
-    *var = val;
+    *elem = val;
 
     return cvalue();
 }
 
 cvalue hii_driver::eval_op1stat(cnode const *node)
 {
-    auto const &varname = node->left()->op() == OP_VAR ?
-        static_cast<cleaf const *>(node->left())->sval() :
-        static_cast<cleaf const *>(node->left()->left())->sval();
+    auto const &varname = static_cast<cleaf const *>(node->left()->left())->sval();
+    auto const &indexes = *static_cast<clist const *>(node->left()->right());
 
     clog::d("op1stat name=%s", varname.c_str());
 
     // 変数を取得
-
-    bool defined = false;
-    auto it = scopes_.rbegin();
-    for (; it != scopes_.rend(); it++) {
-        if (it->has_var(varname)) {
-            defined = true;
-            break;
-        }
-    }
-    if (!defined) {
-        clog::e("変数%sは定義されていません", varname.c_str());
+    auto r = get_var(varname);
+    if (!r) {
+        // TODO varnameが定数を指している場合、定数だから代入できないと補足説明したい
+        clog::e("%s", r.error().message().c_str());
         return cvalue();
     }
-    if (!it->is_writable(varname)) {
-        clog::e("%sは定数のため代入できません", varname.c_str());
+    cvalue *var = r.value();
+
+    // 変更対象の要素を取得
+    auto r2 = get_var_element(var, indexes);
+    if (!r2) {
+        clog::e("%s", r2.error().message().c_str());
         return cvalue();
     }
+    cvalue *elem = r2.value();
 
-    auto &var = it->get_var(varname);
-
-    if (!var.is_int() && !var.is_ary() && !var.is_dict()) {
-        clog::e("変数%sはインクリメント/デクリメントできない型です (type=%s)", varname.c_str(), var.type_name().c_str());
+    // 変数の型チェック
+    if (elem->type() != cvalue::INTEGER) {
+        clog::e("変数%sはインクリメント/デクリメントできない型です (type=%s)", varname.c_str(), elem->type_name().c_str());
         return cvalue();
     }
 
     // 演算処理と変数の更新
-
-    if (var.is_int()) {
-        int res;
-        switch (node->op())
-        {
-        case OP_INC:
-            res = var.i() + 1;
-            it->add_var(varname, cvalue(res), true);
-            break;
-        case OP_DEC:
-            res = var.i() - 1;
-            it->add_var(varname, cvalue(res), true);
-            break;
-        }
-    } else if (var.is_ary()) {
-        // 添字が指定されているかチェック
-        if (node->left()->op() != OP_ELEMENT) {
-            clog::e("添字が指定されていません");
-            return cvalue();
-        }
-
-        // 添字を評価
-        auto &&index = eval(node->left()->right());
-
-        // 添字の型をチェック
-        if (!index.is_int()) {
-            clog::e("添字の型が数値型ではありません");
-            return cvalue();
-        }
-
-        size_t size = var.a().size();
-        int i = index.i();
-
-        // 範囲チェック
-        if (i >= 0 && i >= size || i < 0 && -i >= size + 1) {
-            clog::e("添字(%d)が範囲外です", i);
-            return cvalue();
-        }
-        size_t fixed_index = (i >= 0 ? i : size + i);
-
-        switch (node->op())
-        {
-        case OP_INC:
-            var.a(fixed_index) = var.a(fixed_index).i() + 1;
-            break;
-        case OP_DEC:
-            var.a(fixed_index) = var.a(fixed_index).i() - 1;
-            break;
-        }
-    } else if (var.is_dict()) {
-
+    int res = elem->i();
+    switch (node->op())
+    {
+    case OP_INC:
+        res++;
+        break;
+    case OP_DEC:
+        res--;
+        break;
+    default:
+        clog::e("unknown operator (op=%s)", node->name());
+        throw new logic_error(__func__);
     }
+    *elem = cvalue(res);
 
     return cvalue();
 }

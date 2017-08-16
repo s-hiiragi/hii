@@ -41,7 +41,7 @@ class hii_driver
 
     bool exec(std::string const &file, std::vector<std::string> &args);
 
-  // for parser
+    // for parser
     void set_ast(cnode *ast);
 
     void error(char const *message)
