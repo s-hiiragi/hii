@@ -293,6 +293,9 @@ bool hii_driver::resolve_names(cnode &node)
             }
             break;
         case OP_ARGS:
+        case OP_DICT:
+        case OP_DICTITEM:
+        case OP_DICT_INDEX:
             ctrl.skip_children();
             break;
         case OP_ATTRS:
@@ -704,211 +707,111 @@ cvalue hii_driver::eval_op1stat(cnode const *node)
 
 cvalue hii_driver::eval_op2stat(cnode const *node)
 {
-    auto const &varname = node->left()->op() == OP_VAR ?
-        static_cast<cleaf const *>(node->left())->sval() :
-        static_cast<cleaf const *>(node->left()->left())->sval();
+    auto const &varname = static_cast<cleaf const *>(node->left()->left())->sval();
+    auto const &indexes = *static_cast<clist const *>(node->left()->right());
+    auto const &expr = node->right();
 
     clog::d("op2stat name=%s", varname.c_str());
 
     // 変数を取得
-
-    bool defined = false;
-    auto it = scopes_.rbegin();
-    for (; it != scopes_.rend(); it++) {
-        if (it->has_var(varname)) {
-            defined = true;
-            break;
-        }
-    }
-    if (!defined) {
-        clog::e("変数%sは定義されていません", varname.c_str());
+    auto r = get_var(varname);
+    if (!r) {
+        // TODO varnameが定数を指している場合、定数だから代入できないと補足説明したい
+        clog::e("%s", r.error().message().c_str());
         return cvalue();
     }
-    if (!it->is_writable(varname)) {
-        clog::e("%sは定数のため代入できません", varname.c_str());
+    cvalue *var = r.value();
+
+    // 変更対象の要素を取得
+    auto r2 = get_var_element(var, indexes);
+    if (!r2) {
+        clog::e("%s", r2.error().message().c_str());
         return cvalue();
     }
+    cvalue *elem = r2.value();
 
-    auto &var = it->get_var(varname);
-
-    if (!var.is_int() && !var.is_ary()) {
-        clog::e("変数%sは数値型または配列型ではないため計算できません", varname.c_str());
+    // 要素の型チェック
+    if (elem->type() != cvalue::INTEGER) {
+        clog::e("要素が数値型ではないため計算できません (type=%s)", elem->type_name().c_str());
         return cvalue();
     }
 
-    auto &&val = eval(node->right());
+    // 式の評価
+    cvalue &&val = eval(expr);
 
-    if (!var.is_ary()) {
-        // 変数とオペランドの型一致チェック
-        if (var.type() != val.type()) {
-            clog::e("変数%sの型(%s)とオペランドの型(%s)が一致しません", varname.c_str(), var.type_name().c_str(), val.type_name().c_str());
-            return cvalue();
-        }
-        switch (node->op())
+    // 要素と式の型一致チェック
+    if (elem->type() != val.type()) {
+        clog::e("要素と式の型が一致しません (elem.type=%s, expr.type=%s)", elem->type_name().c_str(), val.type_name().c_str());
+        return cvalue();
+    }
+
+    switch (node->op())
+    {
+    case OP_PLUS_ASSIGN:
+        switch (elem->type())
         {
-        case OP_PLUS_ASSIGN:
-            switch (var.type())
+        case cvalue::INTEGER:
             {
-            case cvalue::INTEGER:
-                {
-                    int i = var.i() + val.i();
-                    it->add_var(varname, cvalue(i), true);
-                }
-                break;
-            case cvalue::STRING:
-                {
-                    string s = var.s() + val.s();
-                    it->add_var(varname, cvalue(s), true);
-                }
-                break;
-            default:
-                clog::e("変数%sは%s型であるため+=演算子を適用できません", varname.c_str(), var.type_name().c_str());
-                break;
+                int i = elem->i() + val.i();
+                *elem = cvalue(i);
             }
             break;
-        case OP_MINUS_ASSIGN:
-            switch (var.type())
+        case cvalue::STRING:
             {
-            case cvalue::INTEGER:
-                {
-                    int i = var.i() - val.i();
-                    it->add_var(varname, cvalue(i), true);
-                }
-                break;
-            default:
-                clog::e("変数%sは%s型であるため-=演算子を適用できません", varname.c_str(), var.type_name().c_str());
-                break;
-            }
-            break;
-        case OP_TIMES_ASSIGN:
-            switch (var.type())
-            {
-            case cvalue::INTEGER:
-                {
-                    int i = var.i() * val.i();
-                    it->add_var(varname, cvalue(i), true);
-                }
-                break;
-            default:
-                clog::e("変数%sは%s型であるため*=演算子を適用できません", varname.c_str(), var.type_name().c_str());
-                break;
-            }
-            break;
-        case OP_DIVIDE_ASSIGN:
-            switch (var.type())
-            {
-            case cvalue::INTEGER:
-                {
-                    int i = var.i() / val.i();
-                    it->add_var(varname, cvalue(i), true);
-                }
-                break;
-            default:
-                clog::e("変数%sは%s型であるため/=演算子を適用できません", varname.c_str(), var.type_name().c_str());
-                break;
+                string &&s = elem->s() + val.s();
+                *elem = cvalue(s);
             }
             break;
         default:
-            throw std::logic_error("invalid node type");
+            clog::e("要素が%s型であるため+=演算子を適用できません", elem->type_name().c_str());
             break;
         }
-    } else {
-        // 添字が指定されているかチェック
-        if (node->left()->op() != OP_ELEMENT) {
-            clog::e("添字が指定されていません");
-            return cvalue();
-        }
-
-        // 添字を評価
-        auto &&index = eval(node->left()->right());
-
-        // 添字の型をチェック
-        if (!index.is_int()) {
-            clog::e("添字の型が数値型ではありません");
-            return cvalue();
-        }
-
-        size_t size = var.a().size();
-        int i = index.i();
-        size_t fixed_index = cvalue::to_positive_index(i, size);
-        if (fixed_index >= size) {
-            clog::e("添字(%d)が範囲外です", i);
-            return cvalue();
-        }
-
-        if (var.a(fixed_index).type() != val.type()) {
-            clog::e("変数%sの型(%s)とオペランドの型(%s)が一致しません", varname.c_str(), var.a(fixed_index).type_name().c_str(), val.type_name().c_str());
-            return cvalue();
-        }
-
-        switch (node->op())
+        break;
+    case OP_MINUS_ASSIGN:
+        switch (elem->type())
         {
-        case OP_PLUS_ASSIGN:
-            switch (var.a(fixed_index).type())
+        case cvalue::INTEGER:
             {
-            case cvalue::INTEGER:
-                {
-                    int i = var.a(fixed_index).i() + val.i();
-                    var.a(fixed_index) = cvalue(i);
-                }
-                break;
-            case cvalue::STRING:
-                {
-                    string s = var.a(fixed_index).s() + val.s();
-                    var.a(fixed_index) = cvalue(s);
-                }
-                break;
-            default:
-                clog::e("変数%sは%s型であるため+=演算子を適用できません", varname.c_str(), var.a(fixed_index).type_name().c_str());
-                break;
-            }
-            break;
-        case OP_MINUS_ASSIGN:
-            switch (var.a(fixed_index).type())
-            {
-            case cvalue::INTEGER:
-                {
-                    int i = var.a(fixed_index).i() - val.i();
-                    var.a(fixed_index) = cvalue(i);
-                }
-                break;
-            default:
-                clog::e("変数%sは%s型であるため-=演算子を適用できません", varname.c_str(), var.a(fixed_index).type_name().c_str());
-                break;
-            }
-            break;
-        case OP_TIMES_ASSIGN:
-            switch (var.a(fixed_index).type())
-            {
-            case cvalue::INTEGER:
-                {
-                    int i = var.a(fixed_index).i() * val.i();
-                    var.a(fixed_index) = cvalue(i);
-                }
-                break;
-            default:
-                clog::e("変数%sは%s型であるため*=演算子を適用できません", varname.c_str(), var.a(fixed_index).type_name().c_str());
-                break;
-            }
-            break;
-        case OP_DIVIDE_ASSIGN:
-            switch (var.a(fixed_index).type())
-            {
-            case cvalue::INTEGER:
-                {
-                    int i = var.a(fixed_index).i() / val.i();
-                    var.a(fixed_index) = cvalue(i);
-                }
-                break;
-            default:
-                clog::e("変数%sは%s型であるため/=演算子を適用できません", varname.c_str(), var.a(fixed_index).type_name().c_str());
-                break;
+                int i = elem->i() - val.i();
+                *elem = cvalue(i);
             }
             break;
         default:
-            throw std::logic_error("invalid node type");
+            clog::e("要素が%s型であるため-=演算子を適用できません", elem->type_name().c_str());
             break;
         }
+        break;
+    case OP_TIMES_ASSIGN:
+        switch (elem->type())
+        {
+        case cvalue::INTEGER:
+            {
+                int i = elem->i() * val.i();
+                *elem = cvalue(i);
+            }
+            break;
+        default:
+            clog::e("要素が%s型であるため*=演算子を適用できません", elem->type_name().c_str());
+            break;
+        }
+        break;
+    case OP_DIVIDE_ASSIGN:
+        switch (elem->type())
+        {
+        case cvalue::INTEGER:
+            {
+                int i = elem->i() / val.i();
+                *elem = cvalue(i);
+            }
+            break;
+        default:
+            clog::e("要素が%s型であるため/=演算子を適用できません", elem->type_name().c_str());
+            break;
+        }
+        break;
+    default:
+        throw logic_error("invalid node type");
+        break;
     }
 
     return cvalue();
