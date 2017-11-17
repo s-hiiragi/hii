@@ -34,6 +34,22 @@ bool hii_driver::exec(const string &f, vector<string> &args)
 {
     if (!parse(f)) return false;
 
+    cout << "### nodes ###" << endl;
+	//*
+	for (auto &&node : *ast_)
+    {
+        cout << node.name() << " ";
+    }
+	//*/
+	/*
+	for (cnode_iterator it = ast_->begin(); it != ast_->end(); it++) {
+        cout << &(*it) << ": " << it->name() << ":" << it->op();
+		cout << "\n";
+	}
+	*/
+    cout << endl;
+    cout << "### end nodes ###" << endl;
+
     // グローバルスコープを生成
     scopes_.push_back(cscope());
     {

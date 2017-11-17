@@ -1,7 +1,9 @@
 #pragma once
 
 #include <string>
+#include <vector>
 #include <functional>
+#include <cassert>
 
 typedef enum node_type_
 {
@@ -124,6 +126,7 @@ typedef enum node_group_
 
 class cleaf;
 class clist;
+class cnode_iterator;
 
 class cnode
 {
@@ -215,6 +218,21 @@ class cnode
     bool each(std::function<bool(cctrl &ctrl, cnode &node)> const &on_enter, std::function<bool(cctrl &ctrl, cnode &node)> const &on_leave);
     bool each(std::function<bool(cctrl &ctrl, cnode const &node)> const &on_enter, std::function<bool(cctrl &ctrl, cnode const &node)> const &on_leave) const;
 
+    cnode_iterator begin();
+    cnode_iterator end();
+
+    bool operator ==(cnode const &obj) const {
+        if (group_ != obj.group_) return false;
+        if (op_ != obj.op_) return false;
+        if (left_ != obj.left_) return false;
+        if (right_ != obj.right_) return false;
+        return true;
+    }
+
+    bool operator !=(cnode const &obj) const {
+        return !operator==(obj);
+    }
+
   //protected:
     void set_left(cnode * left)
     {
@@ -256,4 +274,68 @@ class cnode
     cnode * left_ = nullptr;
     cnode * right_ = nullptr;
 };
+
+class cnode_iterator
+{
+public:
+    cnode_iterator()
+        {}
+    cnode_iterator(cnode *obj)
+        : stack_({ obj }) {}
+    cnode_iterator(cnode_iterator const &it)
+        : stack_(it.stack_) {}
+
+    cnode & operator *() const
+    {
+        assert(!stack_.empty());
+        return const_cast<cnode &>(*stack_.back());
+    }
+
+    cnode * operator ->() const
+    {
+        assert(!stack_.empty());
+        return const_cast<cnode *>(stack_.back());
+    }
+
+    cnode_iterator & operator ++()
+    {
+        assert(!stack_.empty());
+        cnode &n = *stack_.back();
+
+        cnode *left = n.left();
+        cnode *right = n.right();
+
+		stack_.pop_back();
+
+        // leftを優先して探索するので、rightを先に入れる
+        if (right != nullptr) stack_.push_back(right);
+        if (left != nullptr) stack_.push_back(left);
+
+        return *this;
+    }
+
+    cnode_iterator operator ++(int)
+    {
+        assert(!stack_.empty());
+        cnode_iterator it { *this };
+		this->operator++();
+        return it;
+    }
+
+    bool operator ==(cnode_iterator const &it) const
+    {
+        return stack_ == it.stack_;
+    }
+
+    bool operator !=(cnode_iterator const &it) const
+    {
+        return !operator==(it);
+    }
+
+private:
+    std::vector<cnode *> stack_;
+};
+
+inline cnode_iterator cnode::begin() { return { this }; }
+inline cnode_iterator cnode::end() { return {}; }
 

@@ -45,9 +45,39 @@ int test_cnode_clone()
     return 0;
 }
 
+int test_cnode_iterator()
+{
+    cnode * n1 = new cnode();
+    cnode * n2 = new cnode();
+    cnode n3(OP_NODE, n1, n2);
+
+    // operator==
+    if (!assert_eq(n3.begin(), n3.begin())) return 1;
+    if (!assert_eq(n3.end(), n3.end())) return 1;
+
+    // operator!=
+    if (assert_ne(n3.begin(), n3.begin())) return 1;
+    if (assert_ne(n3.end(), n3.end())) return 1;
+
+    // operator*
+    if (!assert_eq(*n3.begin(), n3)) return 1;
+
+    cnode_iterator it = n3.begin();
+    if (!assert_eq(*it, n3)) return 1;
+    ++it;
+    if (!assert_eq(*it, *n1)) return 1;
+    ++it;
+    if (!assert_eq(*it, *n2)) return 1;
+    ++it;
+    if (!assert_eq(it, n3.end())) return 1;
+
+    return 0;
+}
+
 int test(void)
 {
     if (!test_cnode_clone()) return 1;
+    if (!test_cnode_iterator()) return 1;
     return 0;
 }
 

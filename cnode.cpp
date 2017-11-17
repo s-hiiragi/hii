@@ -64,6 +64,7 @@ const char * cnode::name() const
     switch (op_)
     {
     case OP_NODE:         return "NODE";         break;
+    case OP_LISTITEM:     return "LISTITEM";     break;
     case OP_STATS:        return "STATS";        break;
     case OP_ASSIGN:       return "ASSIGN";       break;
     case OP_REASSIGN:     return "REASSIGN";     break;
