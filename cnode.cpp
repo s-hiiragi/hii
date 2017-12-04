@@ -100,6 +100,7 @@ const char * cnode::name() const
     case OP_LTEQ:         return "LTEQ";         break;
     case OP_GT:           return "GT";           break;
     case OP_GTEQ:         return "GTEQ";         break;
+    case OP_SPACESHIP:    return "SPACESHIP";    break;
     case OP_AND:          return "AND";          break;
     case OP_OR:           return "OR";           break;
     case OP_CALLEXPR:     return "CALLEXPR";     break;

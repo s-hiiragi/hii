@@ -68,6 +68,7 @@ typedef enum node_type_
     OP_LTEQ,
     OP_GT,
     OP_GTEQ,
+	OP_SPACESHIP,
     OP_AND,
     OP_OR,
 
@@ -280,10 +281,18 @@ class cnode_iterator
 public:
     cnode_iterator()
         {}
+
     cnode_iterator(cnode *obj)
         : stack_({ obj }) {}
+
     cnode_iterator(cnode_iterator const &it)
         : stack_(it.stack_) {}
+
+    cnode_iterator & operator =(cnode_iterator const &it)
+    {
+        stack_ = it.stack_;
+        return *this;
+    }
 
     cnode & operator *() const
     {
@@ -305,7 +314,7 @@ public:
         cnode *left = n.left();
         cnode *right = n.right();
 
-		stack_.pop_back();
+        stack_.pop_back();
 
         // leftを優先して探索するので、rightを先に入れる
         if (right != nullptr) stack_.push_back(right);
@@ -318,7 +327,7 @@ public:
     {
         assert(!stack_.empty());
         cnode_iterator it { *this };
-		this->operator++();
+        this->operator++();
         return it;
     }
 

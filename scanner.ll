@@ -22,6 +22,29 @@
 
 static unsigned int column = 1;
 
+static hii_driver *pdriver = nullptr;
+
+#define YY_INPUT(buf,result,max_size) \
+    do { \
+        if (pdriver->is_repl()) { \
+            std::string s = pdriver->scan_input(max_size); \
+            std::strncpy(buf, s.c_str(), max_size); \
+            result = s.size(); \
+        } else { \
+            errno=0; \
+            while ( (result = fread(buf, 1, max_size, yyin))==0 && ferror(yyin)) \
+                { \
+                if( errno != EINTR) \
+                    { \
+                    YY_FATAL_ERROR( "input in flex scanner failed" ); \
+                    break; \
+                    } \
+                errno=0; \
+                clearerr(yyin); \
+                } \
+        } \
+    } while (0)
+
 // TODO 改行トークンのcolumnが1にならない
 #define YY_USER_ACTION  do { \
         if (0) { \
@@ -92,6 +115,7 @@ lcmnt   #[^\n]*
 "!="     return token::TK_NEQ;
 "<="     return token::TK_LTEQ;
 ">="     return token::TK_GTEQ;
+"<=>"    return token::TK_SPACESHIP;
 "and"    return token::TK_AND;
 "or"     return token::TK_OR;
 [-+*/%=(),<>\[\]@?:.]  return yy::parser::token_type(yytext[0]);
@@ -140,13 +164,23 @@ lcmnt   #[^\n]*
 
 void hii_driver::scan_begin()
 {
-    if ((yyin = fopen(file_.c_str(), "r")) == 0)
-        this->error("%s がオープンできません。\n", file_.c_str());
+    pdriver = this;
+
+    if (is_repl()) {
+        // do nothing
+    } else {
+        if ((yyin = fopen(file_.c_str(), "r")) == 0)
+            this->error("%s がオープンできません。\n", file_.c_str());
+    }
 }
 
 void hii_driver::scan_end()
 {
-    fclose(yyin);
-    yylex_destroy();
+    if (is_repl()) {
+        // do nothing
+    } else {
+        fclose(yyin);
+        yylex_destroy();
+    }
 }
 

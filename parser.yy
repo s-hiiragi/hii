@@ -82,6 +82,7 @@
 %token          TK_NEQ              "!="
 %token          TK_LTEQ             "<="
 %token          TK_GTEQ             ">="
+%token          TK_SPACESHIP        "<=>"
 %token          TK_AND              "and"
 %token          TK_OR               "or"
 
@@ -165,7 +166,7 @@
 
 %left "or";
 %left "and";
-%left "==" "!=" '<' "<=" '>' ">=";
+%left "==" "!=" '<' "<=" '>' ">=", "<=>";
 %left '+' '-';
 %left '*' '/' '%';
 %left NEG;
@@ -300,6 +301,7 @@ expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); 
             | expr "<=" expr                { $$ = new cnode(OP_LTEQ, $1, $3); }
             | expr '>' expr                 { $$ = new cnode(OP_GT, $1, $3); }
             | expr ">=" expr                { $$ = new cnode(OP_GTEQ, $1, $3); }
+            | expr "<=>" expr               { $$ = new cnode(OP_SPACESHIP, $1, $3); }
             | expr "and" expr               { $$ = new cnode(OP_AND, $1, $3); }
             | expr "or" expr                { $$ = new cnode(OP_OR, $1, $3); }
             | '(' expr ')'                  { $$ = $2; }

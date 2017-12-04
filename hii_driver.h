@@ -39,7 +39,8 @@ class hii_driver
     hii_driver() {}
     virtual ~hii_driver() {}
 
-    bool exec(std::string const &file, std::vector<std::string> &args);
+    bool exec_string(std::string const &repl_code);
+    bool exec_file(std::string const &file, std::vector<std::string> const &args);
 
     // for parser
     void set_ast(cnode *ast);
@@ -66,11 +67,14 @@ class hii_driver
         return file_;
     }
 
+    bool is_repl() const { return is_repl_; }
+    std::string scan_input(size_t max_size);
+
   private:
+    bool parse(std::string const &fname);
     void scan_begin();
     void scan_end();
-
-    bool parse(std::string const &file);
+    bool eval_ast(std::vector<std::string> const &args);
 
     bool check_syntax(cnode &node);
     bool resolve_names(cnode &node);
@@ -116,7 +120,10 @@ class hii_driver
         }
     }
 
+    // 構文解析字情報
     std::string file_;
+    bool is_repl_ = false;
+    std::string repl_code_;
     cnode *ast_ = nullptr;
 
     // 実行時情報
