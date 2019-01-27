@@ -4,7 +4,7 @@
 #include <climits>
 #include <string>
 #include <cstring>
-#include "hii_driver.h"
+#include "parser_driver.h"
 #include "parser.hh"
 
 #ifdef _MSC_VER
@@ -22,12 +22,12 @@
 
 static unsigned int column = 1;
 
-static hii_driver *pdriver = nullptr;
+hii::parser_driver *yymy_driver = nullptr;  // for YY_INPUT
 
 #define YY_INPUT(buf,result,max_size) \
     do { \
-        if (pdriver->is_repl()) { \
-            std::string s = pdriver->scan_input(max_size); \
+        if (yymy_driver->_has_input_string()) { \
+            std::string s = yymy_driver->_read_string(max_size); \
             std::strncpy(buf, s.c_str(), max_size); \
             result = s.size(); \
         } else { \
@@ -48,13 +48,13 @@ static hii_driver *pdriver = nullptr;
 // TODO 改行トークンのcolumnが1にならない
 #define YY_USER_ACTION  do { \
         if (0) { \
-        printf("YY_USER_ACTION: yytext=%s, yylineno=%d, yyleng=%lu, column=%u\n", \
+        printf("YY_USER_ACTION: yytext=%s, yylineno=%d, yyleng=%d, column=%u\n", \
             yytext[0] == '\n' ? "<NL>" : yytext, yylineno, yyleng, column); \
         } \
         yylloc->begin.line = yylloc->end.line = yylineno; \
         yylloc->begin.column = column; \
         yylloc->end.column = column + yyleng - 1; \
-        yylloc->begin.filename = yylloc->end.filename = &driver.filename(); \
+        yylloc->begin.filename = yylloc->end.filename = &yymy_driver->filename(); \
         column += yyleng; \
     } while (0);
 %}
@@ -161,26 +161,4 @@ lcmnt   #[^\n]*
 .               driver.error("不正な文字です。: %s\n", yytext);
 
 %%
-
-void hii_driver::scan_begin()
-{
-    pdriver = this;
-
-    if (is_repl()) {
-        // do nothing
-    } else {
-        if ((yyin = fopen(file_.c_str(), "r")) == 0)
-            this->error("%s がオープンできません。\n", file_.c_str());
-    }
-}
-
-void hii_driver::scan_end()
-{
-    if (is_repl()) {
-        // do nothing
-    } else {
-        fclose(yyin);
-        yylex_destroy();
-    }
-}
 

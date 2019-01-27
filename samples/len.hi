@@ -1,0 +1,27 @@
+fun my_len s
+  $i = 0
+  loop s
+    $i++
+  end
+  ret $i
+end
+
+# 変数の再代入可能性と値の不変性がある
+# 
+# 変数の再代入可能性が必要なケース
+# - 総和の計算
+# 値の不変性を破りたいケース
+# - コレクション
+
+#! (mylen "") == 0
+#! (mylen "a") == 1
+
+p my_len "hoge"
+p len "hoge"
+
+p my_len [1, 2, 3]
+p len [1, 2, 3]
+
+p my_len 1
+p len 1
+

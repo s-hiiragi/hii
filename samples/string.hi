@@ -1,0 +1,18 @@
+text = "hogehoge\tfuga\rpiyo\nfoo"
+p text
+
+i = 1
+p "int=\{i}"
+
+s1 = "\n"
+p "str_ln=<\{s1}>"
+
+s2 = "\\"
+p "s2=\{s2}"
+
+s3 = "{s3}"
+p "s3=\{s3}"
+
+a = [2,3,4]
+p "array=\{a}"
+

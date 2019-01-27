@@ -1,0 +1,32 @@
+# case 1
+assert 0 == 0, 1
+assert 0 != 0, 0
+
+# case 2
+assert 1 == 0, 0
+assert 1 != 0, 1
+
+# case 3
+assert -1 == -1, 1
+assert -1 != -1, 0
+
+# case 4
+assert "" == "", 1
+assert "" != "", 0
+
+# case 5
+assert "hoge" == "hoge", 1
+assert "hoge" != "hoge", 0
+
+# case 6
+assert "fuga" == "hoge", 0
+assert "fuga" != "hoge", 1
+
+# case 7
+assert "h" == "ho", 0
+
+# case 8.1
+assert [1,2] == [1,2], 1
+# case 8.2
+assert [1,2] != [2,1], 1
+

@@ -1,0 +1,51 @@
+# 案1
+# 関数コール式
+# 
+# call_expr = id exprs
+#
+# メリット
+# - 手続き型言語と同じ記法
+# デメリット
+# - 識別子の評価なのか関数コールなのか曖昧
+# - 優先順位付けのために()を書く必要がある
+
+fun sum a,b
+    p "before"
+    ret a+b
+    p "after"
+end
+sum 1,2
+
+#p sum 1..10
+
+#p reduce (map (filter 1..100, <10), to_s), +
+
+# 案2
+# '.' dot operator
+#
+# expr = expr '.' call_expr (左結合)
+#
+# メリット
+# - 手続き型言語と同じ記法
+#   p (1..100).filter(<10).map(to_s).reduce(+)
+# デメリット
+# - ネストすると読みづらい
+#   a(aa().bb().cc()).b().c()
+
+#1..10 .sum .p
+
+#p 1..100 .filter <10 .map to_s .reduce +
+
+# 案3
+# pipe operator
+# 
+# expr = expr '|' call_expr (左結合)
+
+#sum 1..10 | p
+
+#1..100
+# | filter < 10
+# | map to_s
+# | reduce +
+# | p
+

@@ -1,0 +1,18 @@
+# 1 <=> 2
+assert 1 <=> 2, -1
+
+# 2 <=> 1
+assert 2 <=> 1, 1
+
+# 2 <=> 2
+assert 2 <=> 2, 0
+
+# "h" <=> "hoge"
+assert "h" <=> "hoge", -1
+
+# "hoge" <=> "h"
+assert "hoge" <=> "h", 1
+
+# "hoge" <=> "hoge"
+assert "hoge" <=> "hoge", 0
+

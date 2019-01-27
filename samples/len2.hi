@@ -1,0 +1,12 @@
+fun len seq
+    $c = 0
+    loop seq
+        $c++
+    end
+    ret $c
+end
+
+p len "hoge"
+p len [1, 2, 3]
+p len 10
+

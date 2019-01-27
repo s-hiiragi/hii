@@ -1,0 +1,95 @@
+# 1
+
+# expect error
+break
+
+# expect error
+cont
+
+# expect error
+ret
+
+# 2. loop
+loop 1
+    # expect success
+    break
+
+    # expect success
+    cont
+
+    # expect error
+    ret
+end
+
+# 3. sw
+sw 0
+case 1
+    # expect error
+    ret
+    # expect error
+    cont
+    # expect success
+    break
+else
+    # expect error
+    ret
+    # expect error
+    cont
+    # expect success
+    break
+end
+
+# 4. fun
+fun f
+    # expect error
+    break
+    # expect error
+    cont
+    # expect success
+    ret
+end
+
+# 5. loop + fun
+loop 1
+    fun g
+        # expect error
+        break
+        # expect error
+        cont
+    end
+end
+
+# 6. sw + fun
+sw 0
+else
+    fun h
+        # expect error
+        break
+        # expect error
+        cont
+    end
+end
+
+fun i
+    # 7. fun + loop
+    loop 1
+        # expect success
+        break
+        # expect success
+        cont
+        # expect success
+        ret
+    end
+
+    # 8. fun + sw
+    sw 0
+    else
+        # expect success
+        break
+        # expect error
+        cont
+        # expect success
+        ret
+    end
+end
+

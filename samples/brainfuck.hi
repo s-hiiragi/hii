@@ -1,0 +1,34 @@
+# Brainfu*k
+# Instruction
+# > increment ptr
+# < decrement ptr
+# + increment val
+# - decrement val
+# . print
+# , input
+# [ while
+# ] end while
+# Data
+# array
+# ptr
+
+# Number.Increment
+# Number.Decrement
+
+# p len "hoge"
+
+# loop statement(end,begin)
+# loop 10..1
+#   p cnt
+# end
+
+loop c, ""
+    if c == "]"
+        # 同じネストレベルの'['を探す
+        loop i..0
+            if program[i] == "["
+            end
+        end
+    end
+end
+

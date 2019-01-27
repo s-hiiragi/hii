@@ -1,0 +1,13 @@
+# breakがfunを突き抜けてしまう
+
+# breakがloop/swの中にあることをチェックしないと
+
+fun a
+    break
+end
+
+loop 2
+    p cnt
+    a
+end
+

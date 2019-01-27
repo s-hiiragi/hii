@@ -1,0 +1,27 @@
+# int
+x = 1
+
+# id
+x = a
+
+# add
+x = 1 + 2
+
+# sub
+x = 1 - 2
+
+# mul
+x = 1 * 2
+
+# div
+x = 1 / 2
+
+# neg
+x = -1
+
+# yusen juni
+x = (1 + 2) * 3
+
+# compound
+x = 1 + 2 - 3 * 4 / 5 --6;
+

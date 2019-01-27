@@ -1,0 +1,18 @@
+fun f x
+    ret x * 2
+end
+
+p f-1
+p f -1
+p f- 1
+
+x = 2
+p (x) - 1
+
+p f+1
+p f +1
+p f+ 1
+
+y = 3
+p (y) + 1
+

@@ -1,0 +1,25 @@
+fun fib x
+    if x == 0
+        ret 0
+    elif x == 1
+        ret 1
+    else
+        ret (fib (x)-1) + (fib (x)-2)
+    end
+end
+
+p "@@@ fib 0 = ", fib 0
+p "@@@ fib 1 = ", fib 1
+p "@@@ fib 2 = ", fib 2
+p "@@@ fib 3 = ", fib 3
+p "@@@ fib 4 = ", fib 4
+p "@@@ fib 5 = ", fib 5
+p "@@@ fib 6 = ", fib 6
+p "@@@ fib 7 = ", fib 7
+p "@@@ fib 8 = ", fib 8
+p "@@@ fib 9 = ", fib 9
+p "@@@ fib 10 = ", fib 10
+
+# XXX 計算が終わらない
+#p "@@@ fib 40 = ", fib 40
+
