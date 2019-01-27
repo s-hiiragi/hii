@@ -27,12 +27,12 @@
 #define PRINT_LOC(tok, loc)
 %}
 // The parsing context.
-%parse-param { hii_driver& driver }
-%lex-param   { hii_driver& driver }
+%parse-param { hii::parser_driver& driver }
+%lex-param   { hii::parser_driver& driver }
 
 %code requires { #include "cnode.h" }
 %code requires { #include "clist.h" }
-%code requires { class hii_driver; }
+%code requires { namespace hii { class parser_driver; } }
 
 // %debug
 %error-verbose
@@ -46,7 +46,7 @@
 }
 
 %{
-#include "hii_driver.h"
+#include "parser_driver.h"
 %}
 
 %token          TK_EOF          0   "end of file"
@@ -166,7 +166,7 @@
 
 %left "or";
 %left "and";
-%left "==" "!=" '<' "<=" '>' ">=", "<=>";
+%left "==" "!=" '<' "<=" '>' ">=" "<=>";
 %left '+' '-';
 %left '*' '/' '%';
 %left NEG;
@@ -174,7 +174,7 @@
 %%
 %start unit;
 
-unit    : stats                         { driver.set_ast($1); }
+unit    : stats                         { driver._set_ast($1); }
         ;
 
 /* Note: 空文をノードにしないためにstatではなくstatsで空文を処理している */
@@ -386,7 +386,7 @@ attrs   : %empty                        { $$ = new clist(OP_ATTRS); }
 
 void yy::parser::error(const yy::parser::location_type &l, const std::string &m)
 {
-    //driver.error("%p:%u:%u: error: %s", l.begin.filename, l.begin.line, l.begin.column, m.c_str());
-    driver.error("%s:%u:%u: error: %s", l.begin.filename->c_str(), l.begin.line, l.begin.column, m.c_str());
+    driver.error("%s:%u:%u: error: %s\n", l.begin.filename->c_str(), l.begin.line, l.begin.column, m.c_str());
+    driver.scan_end();
 }
 

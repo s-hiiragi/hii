@@ -27,45 +27,21 @@ using std::stringstream;
 using std::logic_error;
 using my::clog;
 
-
-string hii_driver::scan_input(size_t max_size)
+// TODO const cnode *astにできないか?
+int hii_driver::eval_ast(cnode *ast, vector<string> const &args)
 {
-    string ret(repl_code_, 0, max_size);
-    repl_code_.erase(0, max_size);
-    return ret;
-}
+    int ret = -1;
 
-bool hii_driver::exec_string(string const &repl_code)
-{
-    is_repl_ = true;
-    repl_code_ = repl_code;
-
-    if (!parse("__repl__.hi")) {
-        is_repl_ = false;
-        return false;
+    if (ast == nullptr) {
+        return 1;
     }
 
-    if (!eval_ast({})) return false;
-
-    is_repl_ = false;
-    return true;
-}
-
-bool hii_driver::exec_file(const string &fname, vector<string> const &args)
-{
-    if (!parse(fname)) return false;
-    if (!eval_ast(args)) return false;
-    return true;
-}
-
-bool hii_driver::eval_ast(vector<string> const &args)
-{
     cout << "### nodes ###" << endl;
-    for (auto &&node : *ast_)
+    for (auto &&node : *ast)
     {
         cout << node.name() << " ";
     }
-    for (cnode_iterator it = ast_->begin(); it != ast_->end(); it++) {
+    for (cnode_iterator it = ast->begin(); it != ast->end(); it++) {
         cout << &(*it) << ": " << it->name() << ":" << it->op();
         cout << "\n";
     }
@@ -86,20 +62,20 @@ bool hii_driver::eval_ast(vector<string> const &args)
 
     // 構文チェック
     clog::i("### check syntax: starting ###");
-    if (!check_syntax(*ast_)) {
+    if (!check_syntax(*ast)) {
         clog::e("check_syntax failed");
-        return false;
+        return 2;
     }
     clog::i("### check syntax: finished ###");
 
     // 名前解決
     clog::i("### resolve names: starting ###");
-    resolve_names(*ast_);
+    resolve_names(*ast);
     clog::i("### resolve names: finished ###");
 
     // 意味解析＆実行
     clog::d("### eval ast: starting ###");
-    eval(ast_);
+    eval(ast);
     clog::d("### eval ast: finished ###");
 
     if (exit_fun_) {
@@ -118,34 +94,7 @@ bool hii_driver::eval_ast(vector<string> const &args)
     //assert(scopes_.empty());
     assert(scopes_.size() == 1);
 
-    delete ast_;
-    ast_ = nullptr;
-
-    return true;
-}
-
-bool hii_driver::parse(string const &fname)
-{
-    file_ = fname;
-    scan_begin();                 // スキャナー初期化
-    yy::parser parser(*this);     // パーサー構築
-    int result = parser.parse();  // 構文解析
-    scan_end();                   // スキャナー終了
-    if (result != 0)
-        return false;             // パーサーエラー
-    return true;
-}
-
-void hii_driver::set_ast(cnode *ast)
-{
-    assert(ast != nullptr);
-
-    ast_ = ast;
-    clog::d("set_ast");
-
-    if (clog::is_debug()) {
-        cnode::print(ast);
-    }
+    return 0;
 }
 
 /* 構文チェック
