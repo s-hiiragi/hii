@@ -30,11 +30,19 @@ class cscope
     */
 
   public:
-    cscope() {}
-    virtual ~cscope() {}
+    cscope()
+    {
+        //std::cout << "cscope: construct" << std::endl;
+    }
+
+    virtual ~cscope()
+    {
+        //std::cout << "cscope: destruct" << std::endl;
+    }
 
     void add_var(std::string const &name, cvalue const &value, bool writable)
     {
+        //std::cout << "add_var: " << name << std::endl;
         vars_[name] = std::make_pair(value, writable);
     }
 

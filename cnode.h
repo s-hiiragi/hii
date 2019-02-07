@@ -106,9 +106,9 @@ typedef enum node_type_
 
     // コメント
     OP_LCOMMENT, // line comment
-    OP_TCOMMENT, // tail comment
-    OP_MCOMMENT,  // multi line comment
-    OP_RCOMMENT, // range comment
+    OP_TCOMMENT, // tail comment (構文はLCOMMENTと同じ)
+    OP_MCOMMENT,  // multi line comment (複数行のLCOMMENT)
+    OP_RCOMMENT, // range comment (範囲コメント)
 
     // アノテーション
     OP_ATTRS,
@@ -239,6 +239,13 @@ class cnode
     {
         delete left_;
         left_ = left;
+    }
+
+    cnode * release_left()
+    {
+        cnode * p = left_;
+        left_ = nullptr;
+        return p;
     }
 
     void set_right(cnode * right)

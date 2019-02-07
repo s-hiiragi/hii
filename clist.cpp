@@ -81,5 +81,7 @@ bool clist::each(std::function<bool(cnode const &)> const & fn) const
         p = p->right();
     }
     while (p != nullptr);
+
+    return true;
 }
 

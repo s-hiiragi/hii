@@ -25,7 +25,7 @@ class hii_driver
     hii_driver() {}
     virtual ~hii_driver() {}
 
-    int eval_ast(cnode *ast, std::vector<std::string> const &args);
+    int eval_ast(cnode *ast, std::vector<std::string> const &args, std::vector<cscope> &scopes);
 
   private:
     bool check_syntax(cnode &node);

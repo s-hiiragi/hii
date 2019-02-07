@@ -30,8 +30,10 @@ int parser_driver::parse_file(const std::string &filename, cnode **ast)
     }
 
     yy::parser parser{*this};
+#if YYDEBUG
+    parser.set_debug_level(1);
+#endif
     int result = parser.parse();
-
     scan_end();
 
     if (result != 0) {
@@ -134,7 +136,7 @@ int parser_driver::scan_begin(const string &filename)
 void parser_driver::scan_end()
 {
     if (yyget_in() != nullptr && yyget_in() != stdin) {
-        cout << "fclose: yyin=" << yyget_in() << endl;
+        //cout << "fclose: yyin=" << yyget_in() << endl;
         fclose(yyget_in());
     }
 

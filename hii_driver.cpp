@@ -28,31 +28,31 @@ using std::logic_error;
 using my::clog;
 
 // TODO const cnode *astにできないか?
-int hii_driver::eval_ast(cnode *ast, vector<string> const &args)
+int hii_driver::eval_ast(cnode *ast, vector<string> const &args, std::vector<cscope> &scopes)
 {
-    int ret = -1;
-
     if (ast == nullptr) {
         return 1;
     }
 
-    cout << "### nodes ###" << endl;
-    for (auto &&node : *ast)
-    {
-        cout << node.name() << " ";
+    // (デバッグ) 各ノードのアドレスを表示
+    clog::d("### nodes ###");
+    //for (auto &&node : *ast)
+    //{
+    //    cout << node.name() << " ";
+    //}
+    for (auto const &node : *ast) {
+        clog::d("%p: %s:%d", &node, node.name(), node.op());
     }
-    for (cnode_iterator it = ast->begin(); it != ast->end(); it++) {
-        cout << &(*it) << ": " << it->name() << ":" << it->op();
-        cout << "\n";
-    }
-    cout << endl;
-    cout << "### end nodes ###" << endl;
+    clog::d("### end nodes ###");
 
     // グローバルスコープを生成
-    scopes_.clear();
-    scopes_.push_back(cscope());
+    //scopes_.clear();
+    scopes_ = scopes;
+    if (scopes_.size() == 0) {
+        scopes_.push_back(cscope());
+    }
     {
-        // XXX これは何の処理？
+        // コマンドライン引数をsys_argsに格納
         vector<cvalue> arg_values(args.size());
         std::transform(args.begin(), args.end(), arg_values.begin(),
             [](string const &s){ return cvalue(s); });
@@ -61,31 +61,36 @@ int hii_driver::eval_ast(cnode *ast, vector<string> const &args)
     }
 
     // 構文チェック
-    clog::i("### check syntax: starting ###");
+    clog::d("### check syntax: starting ###");
     if (!check_syntax(*ast)) {
         clog::e("check_syntax failed");
         return 2;
     }
-    clog::i("### check syntax: finished ###");
+    clog::d("### check syntax: finished ###");
 
     // 名前解決
-    clog::i("### resolve names: starting ###");
+    clog::d("### resolve names: starting ###");
     resolve_names(*ast);
-    clog::i("### resolve names: finished ###");
+    clog::d("### resolve names: finished ###");
+
+    // 各状態を初期化
+    // XXX scopes_は上で初期化
+    exit_fun_ = false;
+    cont_loop_ = false;
+    break_loop_ = false;
 
     // 意味解析＆実行
     clog::d("### eval ast: starting ###");
     eval(ast);
     clog::d("### eval ast: finished ###");
 
+    // 終了時の各状態を確認
     if (exit_fun_) {
         clog::e("関数の外でret文が使用されています");
     }
-
     if (cont_loop_) {
         clog::e("loopの外でcont文が使用されています");
     }
-
     if (break_loop_) {
         clog::e("loopの外でbreak文が使用されています");
     }
@@ -93,6 +98,8 @@ int hii_driver::eval_ast(cnode *ast, vector<string> const &args)
     // 後始末
     //assert(scopes_.empty());
     assert(scopes_.size() == 1);
+
+    scopes = scopes_;
 
     return 0;
 }
@@ -146,12 +153,12 @@ bool hii_driver::check_syntax(cnode &node)
             break;
         case OP_MCOMMENT:
             {
-                auto const *comments = static_cast<clist const *>(&n);
-                comments->each([](cnode const &n2) {
-                    auto &&v = static_cast<cleaf const &>(n2);
-                    cout << "  \e[32m" << v.sval() << "\e[00m" << endl;
-                    return true;
-                });
+                //auto const *comments = static_cast<clist const *>(&n);
+                //comments->each([](cnode const &n2) {
+                //    auto &&v = static_cast<cleaf const &>(n2);
+                //    cout << "  \e[32m" << v.sval() << "\e[00m" << endl;
+                //    return true;
+                //});
             }
             break;
         }
@@ -380,6 +387,8 @@ bool hii_driver::resolve_names(cnode &node)
 
     // 後始末
     scopes.clear();
+
+    return true;
 }
 
 bool hii_driver::def_var(cnode const *node)
@@ -1996,7 +2005,7 @@ cvalue hii_driver::eval(cnode const *node)
     case OP_LTEQ:
     case OP_GT:
     case OP_GTEQ:
-	case OP_SPACESHIP:
+    case OP_SPACESHIP:
     case OP_AND:
     case OP_OR:
     case OP_ELEMENT:

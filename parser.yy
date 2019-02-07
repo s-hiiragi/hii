@@ -208,9 +208,21 @@ stat    : assign_stmt                   { $$ = $1; }
         | break_stmt                    { $$ = $1; }
         ;
 
+/*
+ * 代入文 (Assignment Statements)
+ *
+ * 定数や変数を定義する。
+ * 変数(再代入可能なもの)を定義する場合は識別子の前に'$'を付ける。
+ * 変数への再代入を行う場合は再代入文を使用する。
+ */
 assign_stmt : idvar '=' expr                { $$ = new cnode(OP_ASSIGN, $1, $3); }
             ;
 
+/*
+ * 再代入文 (Re-assignment Statements)
+ *
+ * 変数へ値を再代入する。
+ */
 reassign_stmt : var_expr ":=" expr          { $$ = new cnode(OP_REASSIGN, $1, $3); }
               ;
 
@@ -282,7 +294,7 @@ break_stmt  : "break"                       { $$ = new cnode(OP_BREAK, nullptr);
 
 exprs       : %empty                        { $$ = new clist(OP_EXPRS); }
             | expr                          { $$ = new clist(OP_EXPRS, $1); }
-            | exprs ',' expr                { $1->add($3); $$ = $1; }
+            | some_exprs ',' expr           { $1->add($3); $$ = $1; }
             ;
 
 some_exprs  : expr                          { $$ = new clist(OP_EXPRS, $1); }

@@ -37,6 +37,7 @@ bool cvalue::to_bool() const
         return (value_.d->size() != 0);
         break;
     }
+    return false;
 }
 
 std::string cvalue::to_string() const

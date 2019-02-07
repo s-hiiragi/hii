@@ -6,6 +6,7 @@
 #include <cstring>
 #include "parser_driver.h"
 #include "hii_driver.h"
+#include "cscope.h"
 #include "test.h"
 #include "clog.h"
 
@@ -26,8 +27,9 @@ int repl()
 {
     int ret;
     char line[256];
+    std::vector<cscope> scopes;
 
-    clog::set_debug(false);
+    //clog::set_debug(false);
 
     while (true)
     {
@@ -43,34 +45,54 @@ int repl()
             }
         }
         if (cin.eof()) {
-            cout << "-- break (EOF)" << endl;
+            clog::d("-- break (EOF)");
             break;
         }
         if (cin.fail()) cin.clear();
 
-        string code = line;
+        const string code = line;
 
-        cnode *ast = nullptr;
-
+        cnode *ast = nullptr;  // constにできないのか?
 
         hii::parser_driver pd;
         //cout << "-- code" << endl;
         //cout << code << endl;
         //cout << "--" << endl;
-        cout << "-- parse_string " << endl;
+        clog::d("-- parse_string");
         ret = pd.parse_string(code, &ast);
         if (ret != 0) {
-            cout << "E: parse error" << endl;
+            clog::e("parse error");
             continue;
         }
-        cout << "-- eval_ast " << endl;
+
+        //cout << "-- print ast" << endl;
+        //cnode::print(ast);
+        //cout << "ast->op: " << ast->op() << endl;
+        //cout << "ast->left: " << ast->left() << endl;
+        //cout << "ast->right: " << ast->right() << endl;
+        if (ast->op() == OP_STATS && ast->left() != nullptr && ast->right() == nullptr) {
+            //cout << "expand stats" << endl;
+            cnode *p = ast->release_left();
+            delete ast;
+            ast = p;
+        }
+
+        clog::d("-- eval_ast");
+        //cout << "scopes: size=" << scopes.size() << endl;
+        //if (scopes.size() >= 1) {
+        //    scopes[0].print();
+        //}
         hii_driver driver;
-        ret = driver.eval_ast(ast, {});
+        ret = driver.eval_ast(ast, {}, scopes); // writableなscopeを受け取るようにする
         if (ret != 0) {
-            cout << "E: eval error" << endl;
+            clog::e("eval error");
             delete ast;
             continue;
         }
+        //cout << "scopes: size=" << scopes.size() << endl;
+        //if (scopes.size() >= 1) {
+        //    scopes[0].print();
+        //}
 
         delete ast;
     }
@@ -83,7 +105,7 @@ int interpret_file(string const &fname, vector<string> const &args)
     int ret;
     cnode *ast = nullptr;
 
-    cout << "[D] parse_file" << endl;
+    clog::d("parse file: %s", fname.c_str());
 
     hii::parser_driver pd;
 
@@ -92,11 +114,12 @@ int interpret_file(string const &fname, vector<string> const &args)
         return 1;
     }
 
-    cout << "[D] eval_ast" << endl;
+    clog::d("eval_ast");
 
     hii_driver driver;
+    std::vector<cscope> scopes;
 
-    ret = driver.eval_ast(ast, args);
+    ret = driver.eval_ast(ast, args, scopes);
     if (ret != 0) {
         delete ast;
         return 2;
@@ -141,7 +164,7 @@ int main(int argc, char *argv[])
             if (ret != 0) {
                 cout << "[E]: interpret_file failed (" << ret << ")" << endl;
             }
-            break;
+            return ret;
         }
     }
     return 0;
