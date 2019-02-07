@@ -1,6 +1,20 @@
 PROG     = hii
 OUT_DIR  = out
-CPPFLAGS = -DYYERROR_VERBOSE
+
+# for debug
+# BISONFLAGS = --warnings --debug --report=all --report-file="$(OUT_DIR)/parser.output"
+BISONFLAGS = --warnings --report=all --report-file="$(OUT_DIR)/parser.output"
+# for release
+#BISONFLAGS = --warnings
+
+# for debug
+#CPPFLAGS = -DYYERROR_VERBOSE
+# for release
+CPPFLAGS = -DYYERROR_VERBOSE -DNDEBUG
+
+# for debug
+#CXXFLAGS = -std=c++17 -g3 -O0
+# for release
 CXXFLAGS = -std=c++17
 
 SRCS       = $(wildcard *.cpp)
@@ -30,12 +44,12 @@ $(PROG): $(FLEX_OUTPUT) $(BISON_OUTPUT) $(OBJS)
 
 $(FLEX_OUTPUT): scanner.ll
 	$(info FLEX_OUTPUT $@)
-	flex -8 -o$(patsubst %.ll,%.cc,$<) $<
+	flex -8 -o $(patsubst %.ll,%.cc,$<) $<
 
 $(BISON_OUTPUT): parser.yy
 	$(info BISON_OUTPUT $@)
 	@mkdir -p $(OUT_DIR)
-	bison -d -ra --report-file=$(patsubst %.yy,$(OUT_DIR)/%.output,$<) -o$(patsubst %.yy,%.cc,$<) $<
+	bison $(BISONFLAGS) -o $(patsubst %.yy,%.cc,$<) $<
 
 $(OUT_DIR)/%.o: %.cpp
 	@mkdir -p $(OUT_DIR)
