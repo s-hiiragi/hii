@@ -1180,6 +1180,7 @@ cvalue hii_driver::eval_loop(cnode const *node)
     if (is_range) {
         num_begin = loop_begin.i();
         num_end   = loop_end.i() + 1;
+        // TODO 下降ループに対応する
     } else {
         num_begin = 0;  // XXX ループ開始は0の方が良い？
         switch (loop_times.type()) {
@@ -1192,10 +1193,12 @@ cvalue hii_driver::eval_loop(cnode const *node)
         case cvalue::ARRAY:
             num_end = loop_times.a().size();
             break;
+            // TODO 辞書にも対応したい
         default:
             assert(0);
         }
     }
+    clog::d("eval_loop: begin=%d end=%d", num_begin, num_end);
 
     cvalue res;
     for (int i = num_begin; i < num_end; i++)
