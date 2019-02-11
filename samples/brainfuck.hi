@@ -22,13 +22,21 @@
 #   p cnt
 # end
 
-loop c, ""
+program = "+++[-]"
+$i = 0
+
+loop c, program
+    p c, " i=", i
     if c == "]"
         # 同じネストレベルの'['を探す
-        loop i..0
-            if program[i] == "["
+        loop j, 0..$i
+            k = $i - j
+            print "k=", k
+            if program[k] == "["
+                print k, " "
             end
         end
     end
+    $i++
 end
 
