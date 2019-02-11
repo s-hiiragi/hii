@@ -226,6 +226,9 @@ assign_stmt : idvar '=' expr                { $$ = new cnode(OP_ASSIGN, $1, $3);
 reassign_stmt : var_expr ":=" expr          { $$ = new cnode(OP_REASSIGN, $1, $3); }
               ;
 
+/*
+ * 演算代入文 (Statements)
+ */
 op1_stmt    : var_expr "++"                 { $$ = new cnode(OP_INC, $1); }
             | var_expr "--"                 { $$ = new cnode(OP_DEC, $1); }
             ;
