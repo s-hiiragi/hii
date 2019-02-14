@@ -1157,33 +1157,41 @@ cvalue hii_driver::eval_call(cnode const *node)
 cvalue hii_driver::eval_loop(cnode const *node)
 {
     cnode const *id = node->left(); // nullable
-    cnode const *arg1 = node->right()->left();
+    cnode const *arg1 = node->right()->left(); // nullable
     cnode const *arg2 = node->right()->right()->left(); // nullable
     cnode const *stats = node->right()->right()->right();
 
-    assert(arg1 != nullptr);
+    //assert(arg1 != nullptr);
     assert(stats != nullptr);
 
+    // ループカウンタ変数名を取得 (省略時は"cnt")
     auto &&cnt_name = (id != nullptr ? static_cast<cleaf const *>(id)->sval() : "cnt");
 
-    // loop(num|collection)のパラメータをloop(begin,end)に統一
+    // loop(num|collection|range)のパラメータをloop(begin,end)に統一
     bool const is_range = (arg2 != nullptr);
+    bool const is_endless_loop = (arg1 == nullptr);
 
+    // TODO 以下の処理はなぜ2段階に分かれているのか? マージしたい
     cvalue loop_times, loop_begin, loop_end;
     if (is_range) {
         loop_begin = eval(arg1);
         loop_end   = eval(arg2);
-    } else {
+    } else if (! is_endless_loop) {
         loop_times = eval(arg1);
+    } else {
+        // void
     }
     int num_begin, num_end;
     if (is_range) {
         num_begin = loop_begin.i();
-        num_end   = loop_end.i() + 1;
+        num_end   = loop_end.i() + 1;  // XXX [begin, end)のほうが良い?
         // TODO 下降ループに対応する
     } else {
         num_begin = 0;  // XXX ループ開始は0の方が良い？
         switch (loop_times.type()) {
+        case cvalue::VOID:
+            num_end = 0;
+            break;
         case cvalue::INTEGER:
             num_end = loop_times.i();
             break;
@@ -1201,9 +1209,13 @@ cvalue hii_driver::eval_loop(cnode const *node)
     clog::d("eval_loop: begin=%d end=%d", num_begin, num_end);
 
     cvalue res;
-    for (int i = num_begin; i < num_end; i++)
+    for (int i = num_begin; ; i++)
     {
-        // ループカウンタを定義
+        if (! is_endless_loop && i >= num_end) {
+            break;
+        }
+
+        // ループのスコープを生成してループカウンタを定義
         cscope s;
         if (is_range || loop_times.is_int()) {
             s.add_var(cnt_name, cvalue(i), false);

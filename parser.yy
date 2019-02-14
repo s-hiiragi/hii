@@ -283,7 +283,8 @@ args        : %empty                        { $$ = new clist(OP_ARGS); }
 call_stmt   : id exprs                      { $$ = new cnode(OP_CALL, $1, $2); }
             ;
 
-loop_stmt   : "loop" expr '\n' stats "end"                  { $$ = new cnode(OP_LOOP, nullptr, new cnode(OP_NODE, $2, new cnode(OP_NODE, nullptr, $4))); }
+loop_stmt   : "loop" '\n' stats "end"                       { $$ = new cnode(OP_LOOP, nullptr, new cnode(OP_NODE, nullptr, new cnode(OP_NODE, nullptr, $3))); }
+            | "loop" expr '\n' stats "end"                  { $$ = new cnode(OP_LOOP, nullptr, new cnode(OP_NODE, $2, new cnode(OP_NODE, nullptr, $4))); }
             | "loop" expr ".." expr '\n' stats "end"        { $$ = new cnode(OP_LOOP, nullptr, new cnode(OP_NODE, $2, new cnode(OP_NODE, $4,      $6))); }
             | "loop" id ',' expr '\n' stats "end"           { $$ = new cnode(OP_LOOP, $2,      new cnode(OP_NODE, $4, new cnode(OP_NODE, nullptr, $6))); }
             | "loop" id ',' expr ".." expr '\n' stats "end" { $$ = new cnode(OP_LOOP, $2,      new cnode(OP_NODE, $4, new cnode(OP_NODE, $6,      $8))); }
