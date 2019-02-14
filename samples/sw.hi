@@ -1,5 +1,18 @@
-a = 3
+a = 2
 sw a
+case 1
+    p 1
+case 2
+    p 2
+    # breakでswを抜ける
+    break
+    p 2
+else
+    p "else"
+end
+
+b = 3
+sw b
 case 1
     p 1
 case 2
@@ -8,8 +21,8 @@ else
     p "else"
 end
 
-$b = 3
-sw $b
+$c = 3
+sw $c
 case 1: p 1
 case 2: p 2
 else  : p "else"
