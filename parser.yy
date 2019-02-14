@@ -107,6 +107,7 @@
 %type <node>    expr
 %type <node>    slice_expr
 %type <list>    exprs
+%type <node>    call_expr
 %type <node>    var_expr
 %type <list>    indexes
 %type <node>    index
@@ -150,6 +151,7 @@
 %destructor { delete $$; } expr
 %destructor { delete $$; } slice_expr
 %destructor { delete $$; } exprs
+%destructor { delete $$; } call_expr
 %destructor { delete $$; } var_expr
 %destructor { delete $$; } indexes
 %destructor { delete $$; } index
@@ -325,10 +327,13 @@ expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); 
             | '[' pairs ']'                 { $$ = new cnode(OP_DICT, $2); }
             | idvar '.' id                  { $$ = new cnode(OP_DICTITEM, $1, $3); }
             | slice_expr                    { $$ = $1; }
-            | id some_exprs                 { $$ = new cnode(OP_CALLEXPR, $1, $2); }
+            | call_expr                     { $$ = $1; }
             | idvar                         { $$ = $1; }
             | "int"                         { $$ = new cleaf(OP_INT, $1); }
             | "str"                         { $$ = new cleaf(OP_STR, $1); }
+            ;
+
+call_expr   : id '(' exprs ')'              { $$ = new cnode(OP_CALLEXPR, $1, $3); }
             ;
 
 /*
