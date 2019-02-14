@@ -1,42 +1,69 @@
-# Brainfu*k
-# Instruction
-# > increment ptr
-# < decrement ptr
-# + increment val
-# - decrement val
-# . print
-# , input
-# [ while
-# ] end while
-# Data
-# array
-# ptr
+# Brainfu*k sample
 
-# Number.Increment
-# Number.Decrement
-
-# p len "hoge"
-
-# loop statement(end,begin)
-# loop 10..1
-#   p cnt
-# end
-
-program = "+++[-]"
+program = "><>++[-]"
 $i = 0
+$p = 0
+$tape = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
 loop c, program
-    p c, " i=", i
-    if c == "]"
-        # 同じネストレベルの'['を探す
-        loop j, 0..$i
-            k = $i - j
-            print "k=", k
-            if program[k] == "["
-                print k, " "
-            end
+    p i, c, "p=", $p, "tape=", $tape
+
+    sw c
+    case ">"
+        $p++
+    case "<"
+        $p--
+    case "+"
+        $tape[$p]++
+    case "-"
+        $tape[$p]--
+    case "."
+        print $tape[$p]
+    case "["
+        if $tape[$p] != 0
+            break
         end
+
+        $nest = 0
+        loop c, program[$i:]
+            p "  forward", $i, c
+            sw c
+            case "["
+                $nest++
+            case "]"
+                $nest--
+                if $nest == 0
+                    $i++
+                    break 2
+                end
+            end
+            $i++
+        end
+        p "  continue", $i
+        cont $i
+    case "]"
+        $nest = 0
+        loop 0..$i
+            p "  back", $i, program[$i]
+            sw program[$i]
+            case "["
+                $nest--
+                if $nest == 0
+                    break 2
+                end
+            case "]"
+                $nest++
+            end
+            $i--
+        end
+        p "  continue", $i
+        cont $i
+    else
+        p "c=else(", c, ")"
     end
+
     $i++
 end
+
+p "p=", $p, "tape=", $tape
 
