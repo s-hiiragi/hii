@@ -116,6 +116,7 @@ class cvalue
         }
     }
 
+    // XXX no checkでアクセスしている
     int i() const { return value_.i; }
 
     std::string & s() { return *value_.s; }
