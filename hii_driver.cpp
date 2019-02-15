@@ -1036,6 +1036,9 @@ cvalue hii_driver::eval_call(cnode const *node)
         case cvalue::ARRAY:
             res = cvalue(static_cast<int>(v.a().size()));
             break;
+        case cvalue::DICT:
+            res = cvalue(static_cast<int>(v.d().size()));
+            break;
         default:
             // XXX 文字列、配列以外は1としておく
             // XXX 型チェックで弾いた方が良い？
