@@ -1011,6 +1011,7 @@ cvalue hii_driver::eval_call(cnode const *node)
     else if (name == "d") {
         auto it = values.cbegin();
 
+        // TODO デバッグ時のみ表示する仕組みを導入する
         cout << "D: ";
         if (it != values.end()) {
             cout << it->to_string();
