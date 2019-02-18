@@ -295,6 +295,8 @@ cont_stmt   : "cont"                        { $$ = new cnode(OP_CONT, nullptr); 
             ;
 
 break_stmt  : "break"                       { $$ = new cnode(OP_BREAK, nullptr); }
+            | "break" "loop"                { $$ = new cnode(OP_BREAK, new cleaf(OP_STR, "loop")); }
+            | "break" "sw"                  { $$ = new cnode(OP_BREAK, new cleaf(OP_STR, "sw")); }
             | "break" "int"                 { $$ = new cnode(OP_BREAK, new cleaf(OP_INT, $2)); }
             ;
 

@@ -928,11 +928,22 @@ cvalue hii_driver::eval_sw(cnode const *node)
 
         if (break_loop_) {
             clog::d("eval_sw: break_loop=true");
-            assert(res.is_int());
-
-            res = cvalue(res.i() - 1);
-            if (res.i() <= 0) {
-                break_loop_ = false;
+            switch (res.type()) {
+                case cvalue::INTEGER:
+                    res = cvalue(res.i() - 1);
+                    if (res.i() <= 0) {
+                        break_loop_ = false;
+                    }
+                    break;
+                case cvalue::STRING:
+                    if (res.s() == "sw") {
+                        break_loop_ = false;
+                    }
+                    break;
+                default:
+                    clog::d("res type=%s", res.type_name());
+                    assert(0);
+                    break;
             }
         }
 
@@ -1256,11 +1267,22 @@ cvalue hii_driver::eval_loop(cnode const *node)
 
         if (break_loop_) {
             clog::d("eval_loop: break_loop=true");
-            assert(res.is_int());
-
-            res = cvalue(res.i() - 1);
-            if (res.i() <= 0) {
-                break_loop_ = false;
+            switch (res.type()) {
+                case cvalue::INTEGER:
+                    res = cvalue(res.i() - 1);
+                    if (res.i() <= 0) {
+                        break_loop_ = false;
+                    }
+                    break;
+                case cvalue::STRING:
+                    if (res.s() == "loop") {
+                        break_loop_ = false;
+                    }
+                    break;
+                default:
+                    clog::d("res type=%s", res.type_name());
+                    assert(0);
+                    break;
             }
             break;
         }
@@ -1296,12 +1318,18 @@ cvalue hii_driver::eval_break(cnode const *node)
     if (expr != nullptr) {
         res = eval(expr);
         clog::d("eval_break: result=%s", res.to_string().c_str());
-        if (!res.is_int() && !res.is_void()) {
-            clog::e("数値以外(%s)が指定されています", res.to_string().c_str());
-            res = cvalue();  // TODO 例外処理する
-        }
-        if (res.is_void()) {
-            res = cvalue(1);
+        switch (res.type()) {
+            case cvalue::INTEGER:
+            case cvalue::STRING:
+                // resをそのまま返す
+                break;
+            case cvalue::VOID:
+                res = cvalue(1);
+                break;
+            default:
+                clog::e("不正な型の値(%s)が指定されています", res.to_string().c_str());
+                res = cvalue();  // TODO 例外処理する
+                break;
         }
     } else {
         res = cvalue(1);
