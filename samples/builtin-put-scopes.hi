@@ -1,0 +1,5 @@
+a = 1
+loop i, 1
+    _put_scopes
+end
+
