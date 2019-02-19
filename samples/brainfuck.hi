@@ -34,7 +34,7 @@ loop c, program
                 $nest--
                 if $nest == 0
                     $i++
-                    break 2
+                    break loop
                 end
             end
             $i++
@@ -49,7 +49,7 @@ loop c, program
             case "["
                 $nest--
                 if $nest == 0
-                    break 2
+                    break loop
                 end
             case "]"
                 $nest++
