@@ -51,17 +51,17 @@ class cscope
         funs_[name] = fun_node;
     }
 
-    bool has_var(std::string const &name)
+    bool has_var(std::string const &name) const
     {
         return vars_.find(name) != vars_.end();
     }
 
-    bool is_writable(std::string const &name)
+    bool is_writable(std::string const &name) const
     {
-        return vars_.find(name) != vars_.end() && vars_[name].second == true;
+        return vars_.find(name) != vars_.end() && vars_.at(name).second == true;
     }
 
-    bool has_fun(std::string const &name)
+    bool has_fun(std::string const &name) const
     {
         return funs_.find(name) != funs_.end();
     }
