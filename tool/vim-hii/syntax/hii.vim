@@ -1,7 +1,7 @@
 " hii syntax file
 " Language:     hii
 " Maintainer:   s_hiiragi
-" Last Change:  2017 Jul 11
+" Last Change:  2019 Feb 22
 
 syntax keyword hiTodo           contained TODO FIXME XXX
 
@@ -12,13 +12,13 @@ syntax region hiString          start=+"+ skip=+\\"+ end=+"+
 syntax match  hiNumber          "-?\d\+"
 
 syntax keyword hiConditional    if elif else sw case
-syntax keyword hiRepeat         loop
+syntax keyword hiRepeat         loop for
 syntax keyword hiType           void bool num int str ary
 
 syntax match hiVariable         "\$\w\+"
 
 syntax keyword hiKeyword1       fun end ret cont break
-syntax keyword hiKeyword2       _put_scopes input nop p print
+syntax keyword hiKeyword2       _put_scopes input nop p print d assert
 
 highlight link hiLineComment Comment
 highlight link hiComment Comment

@@ -1,4 +1,4 @@
 #!/bin/bash
 mkdir -p ~/.vim
-cp -r "$PWD"/vim-hii/* ~/.vim/
+cp -r "$(dirname "$0")"/vim-hii/* ~/.vim/
 
