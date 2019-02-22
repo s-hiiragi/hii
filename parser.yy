@@ -67,6 +67,7 @@
 %token          TK_FUN              "fun"
 %token          TK_RET              "ret"
 %token          TK_LOOP             "loop"
+%token          TK_FOR              "for"
 %token          TK_CONT             "cont"
 %token          TK_BREAK            "break"
 %token          TK_REASSIGN         ":="
@@ -102,6 +103,7 @@
 %type <node>    ret_stmt
 %type <node>    call_stmt
 %type <node>    loop_stmt
+%type <node>    for_stmt
 %type <node>    cont_stmt
 %type <node>    break_stmt
 %type <node>    expr
@@ -206,6 +208,7 @@ stat    : assign_stmt                   { $$ = $1; }
         | ret_stmt                      { $$ = $1; }
         | call_stmt                     { $$ = $1; }
         | loop_stmt                     { $$ = $1; }
+        | for_stmt                     { $$ = $1; }
         | cont_stmt                     { $$ = $1; }
         | break_stmt                    { $$ = $1; }
         ;
@@ -288,6 +291,20 @@ loop_stmt   : "loop" '\n' stats "end"                       { $$ = new cnode(OP_
             | "loop" expr ".." expr '\n' stats "end"        { $$ = new cnode(OP_LOOP, nullptr, new cnode(OP_NODE, $2, new cnode(OP_NODE, $4,      $6))); }
             | "loop" id ',' expr '\n' stats "end"           { $$ = new cnode(OP_LOOP, $2,      new cnode(OP_NODE, $4, new cnode(OP_NODE, nullptr, $6))); }
             | "loop" id ',' expr ".." expr '\n' stats "end" { $$ = new cnode(OP_LOOP, $2,      new cnode(OP_NODE, $4, new cnode(OP_NODE, $6,      $8))); }
+            ;
+
+/*
+OP_FOR
+ |-- assign_stmt (nullable)
+ |-- OP_NODE
+      |-- expr
+      |-- OP_NODE
+           |-- stat (nullable)
+           |-- stats
+*/
+
+for_stmt    : "for" expr '\n' stats "end"   { $$ = new cnode(OP_FOR, nullptr, new cnode(OP_NODE, $2, new cnode(OP_NODE, nullptr, $4))); }
+            | "for" assign_stmt ':' expr ':' stat '\n' stats "end"   { $$ = new cnode(OP_FOR, $2, new cnode(OP_NODE, $4, new cnode(OP_NODE, $6, $8))); }
             ;
 
 cont_stmt   : "cont"                        { $$ = new cnode(OP_CONT, nullptr); }

@@ -98,6 +98,7 @@ lcmnt   #[^\n]*
 "fun"    return token::TK_FUN;
 "ret"    return token::TK_RET;
 "loop"   return token::TK_LOOP;
+"for"    return token::TK_FOR;
 "cont"   return token::TK_CONT;
 "break"  return token::TK_BREAK;
 

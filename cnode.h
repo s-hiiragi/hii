@@ -47,6 +47,7 @@ typedef enum node_type_
     OP_FUN,
     OP_RET,
     OP_LOOP,
+    OP_FOR,
     OP_CONT,
     OP_BREAK,
 

@@ -84,6 +84,7 @@ const char * cnode::name() const
     case OP_FUN:          return "FUN";          break;
     case OP_RET:          return "RET";          break;
     case OP_LOOP:         return "LOOP";         break;
+    case OP_FOR:          return "FOR";          break;
     case OP_CONT:         return "CONT";         break;
     case OP_BREAK:        return "BREAK";        break;
     case OP_EXPRS:        return "EXPRS";        break;

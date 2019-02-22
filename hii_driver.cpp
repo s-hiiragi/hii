@@ -1294,6 +1294,86 @@ cvalue hii_driver::eval_loop(cnode const *node)
     return res;  // XXX 最後に実行した複文の値を返す
 }
 
+cvalue hii_driver::eval_for(cnode const *node)
+{
+    cnode const *assign_stmt = node->left(); // nullable
+    cnode const *condition = node->right()->left();
+    cnode const *update_stat = node->right()->right()->left(); // nullable
+    cnode const *stats = node->right()->right()->right();
+
+    assert(condition != nullptr);
+    assert(stats != nullptr);
+
+    // assign_stmt用のスコープを追加
+    cscope s;
+    scopes_.push_back(s);
+
+    // assign_stmtを評価
+    cvalue res;
+    if (assign_stmt != nullptr) {
+        res = eval_assign(assign_stmt);
+    }
+
+    while (true)
+    {
+        // 条件式を評価
+        cvalue v = eval(condition);
+        if (!v.to_bool()) {
+            break;
+        }
+
+        // 複文を評価
+        cscope s;
+        scopes_.push_back(s);
+        res = eval_stats(stats);
+        scopes_.pop_back();
+
+        // 各種フラグを処理
+        if (exit_fun_) {
+            clog::d("eval_for: exit_fun=true");
+            break;
+        }
+
+        if (cont_loop_) {
+            clog::d("eval_for: cont_loop=true");
+            assert(res.is_void());
+            cont_loop_ = false;
+        }
+
+        if (break_loop_) {
+            clog::d("eval_for: break_loop=true");
+            switch (res.type()) {
+                case cvalue::INTEGER:
+                    res = cvalue(res.i() - 1);
+                    if (res.i() <= 0) {
+                        break_loop_ = false;
+                    }
+                    break;
+                case cvalue::STRING:
+                    if (res.s() == "for") {
+                        break_loop_ = false;
+                    }
+                    break;
+                default:
+                    clog::d("res type=%s", res.type_name());
+                    assert(0);
+                    break;
+            }
+            break;
+        }
+
+        // 更新文を評価
+        if (update_stat != nullptr) {
+            eval(update_stat);
+        }
+    }
+
+    // assign_stmt用のスコープを削除
+    scopes_.pop_back();
+
+    return res;  // XXX 最後に実行した複文の値を返す
+}
+
 cvalue hii_driver::eval_cont(cnode const *node)
 {
     auto *expr = node->left();
@@ -2036,6 +2116,8 @@ cvalue hii_driver::eval(cnode const *node)
         return eval_call(node);
     case OP_LOOP:
         return eval_loop(node);
+    case OP_FOR:
+        return eval_for(node);
     case OP_CONT:
         return eval_cont(node);
     case OP_BREAK:
