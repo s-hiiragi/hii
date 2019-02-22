@@ -255,19 +255,24 @@ bool hii_driver::resolve_names(cnode &node)
             break;
         case OP_REASSIGN:
             {
-                // 変数の定義チェック
                 auto const &name = n.left()->op() == OP_VAR ?
                     static_cast<cleaf *>(n.left())->sval() :
                     static_cast<cleaf *>(n.left()->left())->sval();
                 
                 clog::d("on_enter: %s %s", n.name(), name.c_str());
                 
-                if (!scopes.back().has_var(name)) {
+                // 変数が宣言されているかチェック
+                auto scope_it = std::find_if(scopes.rbegin(), scopes.rend(),
+                        [&](auto const &scope) {
+                            return scope.has_var(name);
+                        });
+                if (scope_it == scopes.rend()) {
+                    clog::d("resolve_names");
                     clog::e("変数%sは定義されていません", name.c_str());
                     //return false;
                     return true;
                 }
-                if (!scopes.back().is_writable(name)) {
+                if (!scope_it->is_writable(name)) {
                     clog::e("%sは定数なので代入できません", name.c_str());
                     //return false;
                     return true;
