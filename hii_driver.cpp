@@ -358,16 +358,11 @@ bool hii_driver::resolve_names(cnode &node)
                     break;
                 }
 
-                bool found = false;
-                for (auto it = scopes.rbegin(); it != scopes.rend(); it++)
-                {
-                    auto &&s = *it;
-                    if (s.has_var(name) || s.has_fun(name)) {
-                        found = true;
-                        break;
-                    }
-                }
-                if (!found) {
+                auto found_it = std::find_if(scopes.rbegin(), scopes.rend(),
+                        [&](auto const &scope) {
+                            return scope.has_var(name) || scope.has_fun(name);
+                        });
+                if (found_it == scopes.rend()) {
                     clog::e("識別子%sは定義されていません", name.c_str());
                     //return false;
                     return true;
