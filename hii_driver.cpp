@@ -208,11 +208,15 @@ bool hii_driver::check_syntax(cnode &node)
 }
 
 /* 名前解決
+ * XXX この処理はなんのために行うのか？
+ * - 変数の未定義エラーを実行前に検出するため ==> 実行時にもチェックしてしまっている
  */
 bool hii_driver::resolve_names(cnode &node)
 {
     // スコープを作成
     vector<cscope> scopes = scopes_;
+
+    // XXX この処理の中ではthis->print_scopes()を使わないこと
 
     auto on_enter = [&](cnode::cctrl &ctrl, cnode &n) -> bool {
         switch (n.op())
@@ -230,10 +234,13 @@ bool hii_driver::resolve_names(cnode &node)
             break;
         case OP_ASSIGN:
             {
-                // 変数の二重定義をチェック
+                // 同一スコープ内での変数の二重定義をチェック
+                // XXX 上位のスコープに定義されている場合は警告を出す
                 auto const &name = static_cast<cleaf &>(*n.left()).sval();
                 bool is_var = n.left()->op() == OP_VAR;
+
                 clog::d("on_enter: %s %s", n.name(), name.c_str());
+
                 if (scopes.back().has_var(name)) {
                     clog::e("%s%sがすでに定義されているため%s%sを二重定義できません", 
                         scopes.back().is_writable(name) ? "変数" : "定数", name.c_str(), 
@@ -291,9 +298,11 @@ bool hii_driver::resolve_names(cnode &node)
             }
             break;
         case OP_ARGS:
+            // 仮引数は変数名の参照ではなく宣言なのでチェック対象外
         case OP_DICT:
         case OP_DICTITEM:
         case OP_DICT_INDEX:
+            // 辞書のキーは変数名ではないのでチェック対象外
             ctrl.skip_children();
             break;
         case OP_ATTRS:
@@ -324,19 +333,13 @@ bool hii_driver::resolve_names(cnode &node)
             break;
         case OP_ID:
         case OP_VAR:
-            // 識別子が定義されているかチェック
-            // XXX 仮引数はチェックしないようにする!
-            //     -> OP_ARGSだったら子ノードを探索しない、という処理が必要?
+            // 識別子が宣言されているかチェック
             {
                 auto const &name = static_cast<cleaf &>(n).sval();
                 clog::d("on_enter: %s %s", n.name(), name.c_str());
 
                 // 組込定数はエラーとしない
-                /*
-                if (name == "sys_args") {
-                    break;
-                }
-                */
+                // - sys_args ==> 組込定数から暗黙的に定義される変数に変更
 
                 // 組込関数はエラーとしない
                 if (name == "nop" ||
