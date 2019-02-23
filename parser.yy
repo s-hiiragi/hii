@@ -371,6 +371,7 @@ indexes     : %empty                        { $$ = new clist(OP_INDEXES); }
             | indexes index                 { $1->add($2); $$ = $1; }
             ;
 
+/* XXX exprにも idvar "." id というルールがあり重複している */
 index       : '[' expr ']'                  { $$ = new cnode(OP_ARRAY_INDEX, $2); }
             | '.' id                        { $$ = new cnode(OP_DICT_INDEX, $2); }
             ;
@@ -398,18 +399,23 @@ idvar   : id                            { $$ = $1; }
         | var                           { $$ = $1; }
         ;
 
+/* 識別子 (Identifiers) */
 id      : "id"                          { $$ = new cleaf(OP_ID, $1); }
         ;
 
+/* 変数('$'で始まる) (Variables) */
 var     : "var"                         { $$ = new cleaf(OP_VAR, $1); }
         ;
 
+/* 行コメント(Line Comments) */
 lcmnt   : "lcmnt"                       { $$ = new cleaf(OP_LCOMMENT, $1); }
         ;
 
+/* 末尾コメント(Tail Comments) */
 tcmnt   : "lcmnt"                       { $$ = new cleaf(OP_TCOMMENT, $1); }
         ;
 
+/* 範囲コメント(Range Comments) */
 rcmnt   : "rcmnt"                       { $$ = new cleaf(OP_RCOMMENT, $1); }
         ;
 
