@@ -5,8 +5,10 @@ $i = 0
 $p = 0
 $tape = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
 
-loop c, program
-    p i, c, "p=", $p, "tape=", $tape
+for $i = 0: $i < len(program): $i++
+    c = program[$i]
+
+    p $i, c, "p=", $p, "tape=", $tape
 
     sw c
     case ">"
@@ -57,12 +59,11 @@ loop c, program
             $i--
         end
         p "  continue", $i
+        $i--
         cont $i
     else
         p "c=else(", c, ")"
     end
-
-    $i++
 end
 
 p "p=", $p, "tape=", $tape
