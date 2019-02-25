@@ -108,13 +108,13 @@ int hii_driver::eval_ast(cnode *ast, vector<string> const &args, std::vector<csc
  * 
  * チェック項目
  * - returnがfunの中にあるか
- * - break,continueがloop/swの中にあるか
+ * - break,continueがloop/for/swの中にあるか
  */
 bool hii_driver::check_syntax(cnode &node)
 {
     bool result = true;
     int fun_count = 0;
-    vector<int> loop_counts = {0};
+    vector<int> loop_counts = {0};  // loop or for
     vector<int> sw_counts = {0};
 
     auto on_enter = [&](cnode::cctrl &ctrl, cnode &n) -> bool {
@@ -130,6 +130,7 @@ bool hii_driver::check_syntax(cnode &node)
             sw_counts.back()++;
             break;
         case OP_LOOP:
+        case OP_FOR:
             loop_counts.back()++;
             break;
         case OP_RET:
@@ -140,13 +141,13 @@ bool hii_driver::check_syntax(cnode &node)
             break;
         case OP_CONT:
             if (loop_counts.back() <= 0) {
-                clog::e("contはloopの外では使用できません: loop_count=%d", loop_counts.back());
+                clog::e("contはloop/forの外では使用できません: loop_count=%d", loop_counts.back());
                 result = false;
             }
             break;
         case OP_BREAK:
             if (sw_counts.back() <= 0 && loop_counts.back() <= 0) {
-                clog::e("breakはswまたはloopの外では使用できません: sw_count=%d, loop_count=%d", 
+                clog::e("breakはsw/loop/forの外では使用できません: sw_count=%d, loop_count=%d", 
                     sw_counts.back(), loop_counts.back());
                 result = false;
             }
@@ -177,6 +178,7 @@ bool hii_driver::check_syntax(cnode &node)
             sw_counts.back()--;
             break;
         case OP_LOOP:
+        case OP_FOR:
             loop_counts.back()--;
             break;
         }
