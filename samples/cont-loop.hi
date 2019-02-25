@@ -1,0 +1,16 @@
+# XXX loop文でのcont NUM構文は後々削除するかもしれない
+
+$i = 0
+$f = 0
+loop c, "hoge"
+    p c
+    if $f
+        break
+    end
+    if $i == 3
+        $f := 1
+        cont 0
+    end
+    $i++
+end
+
