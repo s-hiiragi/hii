@@ -1,0 +1,12 @@
+# a for statement with initialize and update statements
+for $i = 0: $i < 2: $i++
+    p "$i = ", $i
+end
+
+# a for statement as a while statement (without initialize and update statements)
+$k = 2
+for $k
+    p "$k = ", $k
+    $k--
+end
+
