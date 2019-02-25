@@ -1,0 +1,18 @@
+# and operator
+p 0 and 0
+p 0 and 1
+p 1 and 0
+p 1 and 1
+
+# or operator
+p 0 or 0
+p 0 or 1
+p 1 or 0
+p 1 or 1
+
+# and, or
+p 1 and 1 or 0
+p 0 and 0 or 1
+p 0 or 1 and 1
+p 1 or 0 and 0
+

@@ -1,0 +1,70 @@
+# Brainfu*k sample
+
+program = "><>++[-]"
+$i = 0
+$p = 0
+$tape = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+
+for $i = 0: $i < len(program): $i++
+    c = program[$i]
+
+    p $i, c, "p=", $p, "tape=", $tape
+
+    sw c
+    case ">"
+        $p++
+    case "<"
+        $p--
+    case "+"
+        $tape[$p]++
+    case "-"
+        $tape[$p]--
+    case "."
+        print $tape[$p]
+    case "["
+        if $tape[$p] != 0
+            break
+        end
+
+        $nest = 0
+        loop c, program[$i:]
+            p "  forward", $i, c
+            sw c
+            case "["
+                $nest++
+            case "]"
+                $nest--
+                if $nest == 0
+                    $i++
+                    break loop
+                end
+            end
+            $i++
+        end
+        p "  continue", $i
+        cont $i
+    case "]"
+        $nest = 0
+        loop 0..$i
+            p "  back", $i, program[$i]
+            sw program[$i]
+            case "["
+                $nest--
+                if $nest == 0
+                    break loop
+                end
+            case "]"
+                $nest++
+            end
+            $i--
+        end
+        p "  continue", $i
+        $i--
+        cont $i
+    else
+        p "c=else(", c, ")"
+    end
+end
+
+p "p=", $p, "tape=", $tape
+

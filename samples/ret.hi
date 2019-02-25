@@ -1,0 +1,18 @@
+fun sum a,b
+    p "before"
+    ret a+b
+    p "after"
+end
+
+# 戻り値を識別子にバインド
+c = sum 1,2
+p "c=", c
+
+# 関数の引数に関数コールを記載
+p "sum 3,4=", sum 3,4
+
+fun say_hello
+    p "hello!"
+end
+p say_hello
+

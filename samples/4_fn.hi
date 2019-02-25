@@ -1,0 +1,25 @@
+# function declaration statement
+
+# smallest function
+fun f
+    pass
+end
+
+# simple function
+fun f x
+    x = x * x
+    ret x
+end
+
+# multi argument
+fun g x, y, z
+    pass
+end
+
+# function in function
+fun h
+    fun i
+        pass
+    end
+end
+

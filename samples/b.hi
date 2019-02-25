@@ -1,0 +1,18 @@
+fun f x
+    p x
+end
+
+fun g y
+    ret y
+end
+
+fun h z,zz
+    ret z + zz
+end
+
+f g h 1,2
+
+a = 3
+b = 4
+f g h a, b
+

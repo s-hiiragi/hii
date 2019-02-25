@@ -1,0 +1,29 @@
+# loop statement (num)
+
+loop 3
+    p cnt
+end
+
+# loop statement (id,num)
+
+loop i, 3
+    p i
+end
+
+# loop statement (begin,end)
+
+loop 1..3
+    p cnt
+end
+
+# loop statement (id,begin,end)
+
+loop i, 1..3
+    p i
+end
+
+# loop statement (id,str)
+loop c, "hoge"
+    p c
+end
+

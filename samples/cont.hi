@@ -1,0 +1,26 @@
+loop i, 1..10
+    p i
+    if i == 2
+        cont 10
+    end
+end
+# ==>
+# 1
+# 2
+# 10
+
+# 2重ループ
+loop i, 1..2
+    loop j, 1..10
+        p i*10 + j
+
+        if j == 2
+            cont 11
+        end
+
+        if i == 2
+            cont 11
+        end
+    end
+end
+

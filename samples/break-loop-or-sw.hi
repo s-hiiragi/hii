@@ -1,0 +1,60 @@
+# loop
+loop i, 2
+    p i
+    break loop
+end
+
+# loop in loop
+loop i, 2
+    loop j, 2
+        p i, j
+        break loop
+    end
+end
+
+# sw in loop
+loop i, 2
+    p i
+    sw i
+    case 0
+        break loop
+    case 1
+        nop
+    end
+end
+
+# sw
+a = 1
+sw a
+case 1
+    p 1
+    break sw
+    p 1
+end
+
+# sw in sw
+b = 1
+sw b
+case 1
+    p 1
+    sw b
+    case 1
+        p 11
+        break sw
+        p 11 
+    end
+    p 1
+end
+
+# loop in sw
+c = 10
+sw c
+case 10
+    p 10
+    loop i, 2
+        p i
+        break sw
+    end
+    p 10
+end
+

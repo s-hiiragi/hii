@@ -1,0 +1,15 @@
+fun f x, y
+  ret x + y
+end
+
+p f(2, 3)
+
+fun g x
+  y = x * x
+  p y
+  ret y
+end
+
+g 4
+p g(4)
+

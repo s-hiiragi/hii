@@ -1,0 +1,5 @@
+# call statement
+call_fun
+call_fun 1
+call_fun 1, 2
+

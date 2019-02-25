@@ -30,3 +30,18 @@
 *.exe
 *.out
 *.app
+
+# flex/bisn output files
+*.output
+*.hh
+*.cc
+
+# output files
+hii
+/out/
+
+# tag files
+tags
+
+# untracked files
+_*

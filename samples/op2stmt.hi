@@ -1,0 +1,92 @@
+# +=
+
+$a = 0
+$a += 1
+## expect 1
+p $a
+
+$aa = [0]
+$aa[0] += 1
+# expect [1]
+p $aa
+
+$aa[-1] += 10
+# expect [11]
+p $aa
+
+# expect error
+$aa[1] += 100
+
+# expect error
+$aa[-2] += 100
+
+
+# -=
+
+$b = 3
+$b -= 1
+## expect 2
+p $b
+
+$bb = [3]
+$bb[0] -= 1
+# expect [2]
+p $bb
+
+$bb[-1] -= 24
+# expect [-22]
+p $bb
+
+# expect error
+$bb[1] -= 100
+
+# expect error
+$bb[-2] -= 100
+
+
+# *=
+
+$c = 1
+$c *= 3
+## expect 3
+p $c
+
+$cc = [1]
+$cc[0] *= 3
+# expect [3]
+p $cc
+
+$cc[-1] *= 11
+# expect [33]
+p $cc
+
+# expect error
+$cc[1] *= 100
+
+# expect error
+$cc[-2] *= 100
+
+
+# /=
+
+$d = 8
+$d /= 2
+## expect 4
+p $d
+
+$dd = [8]
+$dd[0] /= 2
+# expect [4]
+p $dd
+
+$dd[0] := 88
+$dd[-1] /= 2
+# expect [44]
+p $dd
+
+# expect error
+$dd[1] /= 100
+
+# expect error
+$dd[-2] /= 100
+

@@ -1,0 +1,18 @@
+# ループを抜ける
+loop i, 2
+    if i == 2
+        break
+    end
+    p i
+end
+
+# 2重ループを抜ける
+loop i, 2
+    loop j, 2
+        if j == 2
+            break 2
+        end
+        p i*10+j
+    end
+end
+

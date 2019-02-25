@@ -1,0 +1,12 @@
+# invalid token
+
+a = 1
+
+if 1 - 1
+    p 3
+elif 0 * (2 * 0)
+    p 4
+else
+    b = 4
+end
+

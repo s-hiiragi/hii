@@ -1,0 +1,30 @@
+# if statement
+if 1
+    x = 0
+end
+
+# if-else statement
+if 1
+    x = 1
+else
+    x = 2
+end
+
+# if-elif statement
+if 1
+    x = 1
+elif 2
+    x = 2
+end
+
+# if-elif-else statement
+if 1
+    x = 1
+elif 2
+    x = 2
+elif 3
+    x = 3
+else
+    x = 4
+end
+

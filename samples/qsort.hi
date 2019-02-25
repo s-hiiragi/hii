@@ -1,0 +1,36 @@
+fun qsort $a, b, e
+    if len $a <= 1
+        ret $a
+    end
+
+    pp = (e - b) / 2
+    p pp
+    pivot = $a[pp]
+
+    $i = b
+    $j = e
+
+    loop
+        loop $a[$i:pivot]
+            if $a[$i] > pivot
+                break
+            end
+            $i++
+        end
+
+        loop $a[$j:pivot]
+            if $a[$j] < pivot
+                break
+            end
+            $j--
+        end
+
+        if $i == $j
+        end
+
+        tmp = $a[$i]
+        $a[$i] := $a[$j]
+        $a[$j] := $a[$i]
+    end
+end
+

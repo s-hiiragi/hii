@@ -1,0 +1,10 @@
+n = input
+m = input
+
+loop i, n
+  loop j, m
+    print "#"
+  end
+  p
+end
+
