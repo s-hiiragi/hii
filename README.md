@@ -1,10 +1,10 @@
 # README
 
-hii is a programming language for hobby.
+hii is a toy programming language.
 
 ## documents
 
-
+WIP
 
 ## how to build
 
@@ -21,8 +21,9 @@ make
 
 run
 
-    ./hii sample.hi
+    ./hii samples/hello.hi
 
 ## license
 
+Apache License, Version 2.0
 
