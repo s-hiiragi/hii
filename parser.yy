@@ -121,6 +121,7 @@
 %type <node>    lcmnt
 %type <node>    tcmnt
 %type <node>    rcmnt
+%type <node>    dict
 %type <list>    pairs
 %type <node>    pair
 /*
@@ -165,6 +166,7 @@
 %destructor { delete $$; } lcmnt
 %destructor { delete $$; } tcmnt
 %destructor { delete $$; } rcmnt
+%destructor { delete $$; } dict
 %destructor { delete $$; } pairs
 %destructor { delete $$; } pair
 
@@ -344,7 +346,7 @@ expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); 
             | '(' expr ')'                  { $$ = $2; }
             | '[' exprs ']'                 { $$ = new cnode(OP_ARRAY, $2); }
             | expr '[' expr ']'             { $$ = new cnode(OP_ELEMENT, $1, $3); }
-            | '[' pairs ']'                 { $$ = new cnode(OP_DICT, $2); }
+            | dict                          { $$ = $1; }
             | idvar '.' id                  { $$ = new cnode(OP_DICTITEM, $1, $3); }
             | slice_expr                    { $$ = $1; }
             | call_expr                     { $$ = $1; }
@@ -380,6 +382,9 @@ slice_expr  : expr '[' ':' ']'              { $$ = new cnode(OP_SLICE, $1, new c
             | expr '[' ':' expr ']'         { $$ = new cnode(OP_SLICE, $1, new cnode(OP_NODE, nullptr, $4)); }
             | expr '[' expr ':' ']'         { $$ = new cnode(OP_SLICE, $1, new cnode(OP_NODE, $3, nullptr)); }
             | expr '[' expr ':' expr ']'    { $$ = new cnode(OP_SLICE, $1, new cnode(OP_NODE, $3, $5)); }
+            ;
+
+dict        : '[' pairs ']'                 { $$ = new cnode(OP_DICT, $2); }
             ;
 
 pairs       : pair                          { $$ = new clist(OP_PAIRS, $1); }
