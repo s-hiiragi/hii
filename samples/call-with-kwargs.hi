@@ -1,0 +1,16 @@
+fun f a, b, c
+    p "a=", a, "b=", b, "c=", c
+end
+
+# call_stmt with kwargs
+f 1, 2, 3
+f 1, 2, c:3
+f 1, b:2, c:3
+f a:1, b:2, c:3
+
+# call_expr with kwargs
+nop f(1, 2, 3)
+nop f(1, 2, c:3)
+nop f(1, b:2, c:3)
+nop f(a:1, b:2, c:3)
+

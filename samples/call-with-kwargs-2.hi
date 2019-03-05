@@ -1,0 +1,7 @@
+fun f a, b, c
+    p "a=", a, "b=", b, "c=", c
+end
+
+# less kwarg
+f 1, 2, d:3
+
