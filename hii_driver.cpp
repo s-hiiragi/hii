@@ -973,21 +973,27 @@ cvalue hii_driver::eval_call(cnode const *node)
 {
     cvalue res;
     auto const &name = static_cast<cleaf const *>(node->left())->sval();
-    auto const *exprs = static_cast<clist const *>(node->right());
-
-    clog::d("eval_call: Enter");
+    auto const *args = static_cast<clist const *>(node->right()->left()); // nullable
+    auto const *kwargs = static_cast<cnode const *>(node->right()->right()); // nullable
+    clog::d("eval_call: Enter (name=%s)", name.c_str());
+    clog::d("  args %p kwargs %p", args, kwargs);
 
     // 引数を評価
     // XXX 関数の名前解決前に引数を評価するの微妙...
     vector<cvalue> values;
-    exprs->each([&](cnode const &n){
-        cvalue &&v = eval(&n);
+    if (args != nullptr) {
+        args->each([&](cnode const &n){
+            cvalue const &v = eval(&n);
+            values.push_back(v);
+            return true;
+        });
+    }
 
-        clog::d("eval_call: eval arg_value=%s", v.to_string().c_str());
-
-        values.push_back(v);
-        return true;
-    });
+    // キーワード引数を評価
+    cvalue kwvalues{std::map<std::string, cvalue>()};
+    if (kwargs != nullptr) {
+        kwvalues = eval_dict(kwargs);
+    }
 
     // 関数呼び出しを実行
     // 組込関数->ユーザー定義関数の順に名前解決する
@@ -1029,10 +1035,10 @@ cvalue hii_driver::eval_call(cnode const *node)
 
         // TODO デバッグ時のみ表示する仕組みを導入する
         cout << "D: ";
-        if (it != values.end()) {
+        if (it != values.cend()) {
             cout << it->to_string();
             it++;
-            for (; it != values.end(); it++) {
+            for (; it != values.cend(); it++) {
                 cout << ", " << it->to_string();
             }
         }
@@ -1106,9 +1112,23 @@ cvalue hii_driver::eval_call(cnode const *node)
         }
 
         cnode const *fun = b->get_fun(name);
-        auto const *args = static_cast<clist const *>(fun->right()->left());
+        auto const *params = static_cast<clist const *>(fun->right()->left());
         auto const *attrs = static_cast<clist const *>(fun->right()->right()->left());
         auto const *stats = static_cast<clist const *>(fun->right()->right()->right());
+
+        std::vector<std::string> param_names;
+        params->each([&](cnode const &n) {
+            param_names.push_back(static_cast<cleaf const &>(n).sval());
+            return true;
+        });
+        if (values.size() + kwvalues.d().size() != param_names.size()) {
+            clog::e("引数の数が一致しません: args=%zu kwargs=%zu params=%zu",
+                    values.size(), kwvalues.d().size(), param_names.size());
+        }
+
+        for (auto &&name : param_names) {
+            clog::d("param %s", name.c_str());
+        }
 
         // scopes_      [u][v][w]
         //                  ^
@@ -1135,14 +1155,12 @@ cvalue hii_driver::eval_call(cnode const *node)
 
         clog::d("eval_call: create scope: %zu", scopes_.size());
 
-        // 実引数を定義
-        int i=0;
-        args->each([&](cnode const &n) {
-            auto const &name = static_cast<cleaf const &>(n).sval();
+        // 位置引数を仮引数として定義
+        size_t i = 0;
+        for (; i < values.size()&& i < param_names.size(); i++) {
+            std::string const &name = param_names[i];
             scopes_.back().add_var(name, values[i], false);
-            i++;
-            return true;
-        });
+        }
         if (attrs->left() != nullptr) {
             auto const &attr1 = static_cast<cleaf const *>(attrs->left())->sval();
             if (attr1 == "variadic") {
@@ -1153,6 +1171,18 @@ cvalue hii_driver::eval_call(cnode const *node)
                 clog::d("eval_call: rest.size %zu", rest.size());
 
                 scopes_.back().add_var(name, cvalue(rest), false);
+            }
+        }
+
+        // キーワード引数を残りの仮引数に対応付けて定義
+        if (kwvalues.d().size() != 0) {
+            for (; i < param_names.size(); i++) {
+                std::string const &name = param_names[i];
+                if (kwvalues.d().find(name) == kwvalues.d().end()) {
+                    clog::e("実引数%sが見つかりません", name.c_str());
+                    break;
+                }
+                scopes_.back().add_var(name, kwvalues.d()[name], false);
             }
         }
 

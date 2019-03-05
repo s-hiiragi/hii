@@ -210,7 +210,7 @@ stat    : assign_stmt                   { $$ = $1; }
         | ret_stmt                      { $$ = $1; }
         | call_stmt                     { $$ = $1; }
         | loop_stmt                     { $$ = $1; }
-        | for_stmt                     { $$ = $1; }
+        | for_stmt                      { $$ = $1; }
         | cont_stmt                     { $$ = $1; }
         | break_stmt                    { $$ = $1; }
         ;
@@ -268,8 +268,16 @@ swcase      : "case" expr '\n' stats        { $$ = new cnode(OP_SWCASE, $2, $4);
             ;
 
 /*
-fun_stmt    : "fun" id args '\n' stats "end"           { $$ = new cnode(OP_FUN, $2, new cnode(OP_NODE, $3, $5)); }
-            ;
+OP_FUN
+ |-- id
+ |-- OP_NODE
+      |-- args
+      |-- OP_NODE
+           |-- clist OP_ATTRS
+           |    |-- OP_ID "variadic"
+           |    |-- OP_LISTITEM
+           |         |-- id
+           |-- stats
 */
 fun_stmt    : "fun" id args '\n' stats "end"               { $$ = new cnode(OP_FUN, $2, new cnode(OP_NODE, $3, new cnode(OP_NODE, new clist(OP_ATTRS), $5))); }
             | "fun" id args ',' "..." id '\n' stats "end"  { $$ = new cnode(OP_FUN, $2, new cnode(OP_NODE, $3, 
@@ -285,7 +293,9 @@ args        : %empty                        { $$ = new clist(OP_ARGS); }
             | args ',' id                   { $1->add($3); $$ = $1; }
             ;
 
-call_stmt   : id exprs                      { $$ = new cnode(OP_CALL, $1, $2); }
+call_stmt   : id exprs                      { $$ = new cnode(OP_CALL, $1, new cnode(OP_NODE, $2)); }
+            | id pairs                      { $$ = new cnode(OP_CALL, $1, new cnode(OP_NODE, nullptr, new cnode(OP_DICT, $2))); }
+            | id some_exprs ',' pairs       { $$ = new cnode(OP_CALL, $1, new cnode(OP_NODE, $2, new cnode(OP_DICT, $4))); }
             ;
 
 loop_stmt   : "loop" '\n' stats "end"                       { $$ = new cnode(OP_LOOP, nullptr, new cnode(OP_NODE, nullptr, new cnode(OP_NODE, nullptr, $3))); }
@@ -355,7 +365,17 @@ expr        : expr '-' expr                 { $$ = new cnode(OP_MINUS, $1, $3); 
             | "str"                         { $$ = new cleaf(OP_STR, $1); }
             ;
 
-call_expr   : id '(' exprs ')'              { $$ = new cnode(OP_CALLEXPR, $1, $3); }
+/*
+OP_CALLEXPR
+ |-- id
+ |-- OP_NODE
+      |-- exprs (nullable)
+      |-- pairs (nullable)
+*/
+
+call_expr   : id '(' exprs ')'              { $$ = new cnode(OP_CALLEXPR, $1, new cnode(OP_NODE, $3)); }
+            | id '(' pairs ')'              { $$ = new cnode(OP_CALLEXPR, $1, new cnode(OP_NODE, nullptr, new cnode(OP_DICT, $3))); }
+            | id '(' some_exprs ',' pairs ')' { $$ = new cnode(OP_CALLEXPR, $1, new cnode(OP_NODE, $3, new cnode(OP_DICT, $5))); }
             ;
 
 /*
