@@ -1,0 +1,14 @@
+# kebab-case
+a = 1
+b = 2
+a-b = 3
+a- = 4
+assert a-b, 3 # id
+assert a-, 4 # id
+assert a - b, -1 # expr
+assert -a, -1 # expr
+
+$c = 5
+$c-d = 6
+assert $c-d, 6 # id
+

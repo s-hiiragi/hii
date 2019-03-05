@@ -69,8 +69,8 @@ hii::parser_driver *yymy_driver = nullptr;  // for YY_INPUT
 %option bison-bridge
 %option bison-locations
 
-var    \$[a-zA-Z_][a-zA-Z_0-9]*
-id     [a-zA-Z_][a-zA-Z_0-9]*
+var    \$[a-zA-Z_][a-zA-Z_0-9\-]*
+id     [a-zA-Z_][a-zA-Z_0-9\-]*
 int    [1-9][0-9]*
 /*
 以下のようにすれば-1を単一のトークンとして扱える
