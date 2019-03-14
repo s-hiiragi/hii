@@ -50,9 +50,17 @@ typedef enum node_type_
     OP_FOR,
     OP_CONT,
     OP_BREAK,
+    OP_CLASS,
+    OP_CLASSMEMBERS,
+    OP_CLASSFIELD,
 
     OP_EXPRS,
     OP_ARGS,
+
+    OP_TYPE,
+    OP_ARRAYTYPE,
+    OP_DICTTYPE,
+    OP_ATOMICTYPE,
 
     // 単項演算子
     OP_NEG,

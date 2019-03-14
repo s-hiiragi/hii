@@ -70,6 +70,7 @@
 %token          TK_FOR              "for"
 %token          TK_CONT             "cont"
 %token          TK_BREAK            "break"
+%token          TK_CLASS            "class"
 %token          TK_REASSIGN         ":="
 %token          TK_INC              "++"
 %token          TK_DEC              "--"
@@ -106,6 +107,14 @@
 %type <node>    for_stmt
 %type <node>    cont_stmt
 %type <node>    break_stmt
+%type <node>    class_stmt
+
+%type <list>    class_members
+%type <list>    some_class_members
+%type <node>    class_member
+%type <node>    type
+%type <node>    atomic_type
+
 %type <node>    expr
 %type <node>    slice_expr
 %type <list>    exprs
@@ -151,6 +160,12 @@
 %destructor { delete $$; } loop_stmt
 %destructor { delete $$; } cont_stmt
 %destructor { delete $$; } break_stmt
+%destructor { delete $$; } class_stmt
+%destructor { delete $$; } class_members
+%destructor { delete $$; } some_class_members
+%destructor { delete $$; } class_member
+%destructor { delete $$; } type
+%destructor { delete $$; } atomic_type
 %destructor { delete $$; } expr
 %destructor { delete $$; } slice_expr
 %destructor { delete $$; } exprs
@@ -213,6 +228,7 @@ stat    : assign_stmt                   { $$ = $1; }
         | for_stmt                      { $$ = $1; }
         | cont_stmt                     { $$ = $1; }
         | break_stmt                    { $$ = $1; }
+        | class_stmt                    { $$ = $1; }
         ;
 
 /*
@@ -328,6 +344,30 @@ break_stmt  : "break"                       { $$ = new cnode(OP_BREAK, nullptr);
             | "break" "sw"                  { $$ = new cnode(OP_BREAK, new cleaf(OP_STR, "sw")); }
             | "break" "int"                 { $$ = new cnode(OP_BREAK, new cleaf(OP_INT, $2)); }
             ;
+
+class_stmt  : "class" id '\n' class_members "end" { $$ = new cnode(OP_CLASS, $2, $4); }
+            ;
+
+class_members
+            : %empty                      { $$ = new clist(OP_CLASSMEMBERS); }
+            | some_class_members          { $$ = $1; }
+            ;
+
+some_class_members
+            : class_member '\n'           { $$ = new clist(OP_CLASSMEMBERS, $1); }
+            | some_class_members class_member '\n' { $1->add($2); $$ = $1; }
+            ;
+
+class_member
+            : id type { $$ = new cnode(OP_CLASSFIELD, $1, $2); }
+            ;
+
+type        : atomic_type                   { $$ = new cnode(OP_TYPE, $1); }
+            | "dict" '[' atomic_type ']' type { $$ = new cnode(OP_DICTTYPE, $3, $5); }
+            | '[' ']' type                  { $$ = new cnode(OP_ARRAYTYPE, $3); }
+            ;
+
+atomic_type : id                            { $$ = new cnode(OP_ATOMICTYPE, $1); }
 
 exprs       : %empty                        { $$ = new clist(OP_EXPRS); }
             | expr                          { $$ = new clist(OP_EXPRS, $1); }

@@ -340,6 +340,32 @@ bool hii_driver::resolve_names(cnode &node)
                 scopes.back().add_var(name, cvalue(), false);  // value is dummy
             }
             break;
+        case OP_CLASS:
+            {
+                // クラスの二重定義をチェック
+                auto const &name = static_cast<cleaf const &>(*n.left()).sval();
+                clog::d("on_enter: %s %s", n.name(), name.c_str());
+                if (scopes.back().has_fun(name)) {
+                    clog::e("クラス%sはすでに定義されています", name.c_str());
+                    //return false;
+                    return true;
+                }
+
+                // クラスを定義
+                scopes.back().add_type(name, nullptr);  // value is dummy
+            }
+            break;
+        case OP_CLASSFIELD:
+            {
+                // フィールドを定義
+                // XXX どこに定義するか?
+            }
+            break;
+        case OP_TYPE:
+            {
+                // TODO 型が定義されているかチェック
+            }
+            break;
         case OP_ID:
         case OP_VAR:
             // 識別子が宣言されているかチェック
@@ -1457,6 +1483,11 @@ cvalue hii_driver::eval_break(cnode const *node)
     return res;
 }
 
+cvalue hii_driver::eval_class(cnode const *node)
+{
+    return cvalue();
+}
+
 cvalue hii_driver::eval_op1(cnode const *node)
 {
     auto &&l_value = eval(node->left());
@@ -2156,6 +2187,8 @@ cvalue hii_driver::eval(cnode const *node)
         return eval_cont(node);
     case OP_BREAK:
         return eval_break(node);
+    case OP_CLASS:
+        return eval_class(node);
     // 1項演算子
     case OP_NEG:
         return eval_op1(node);

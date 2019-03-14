@@ -87,8 +87,15 @@ const char * cnode::name() const
     case OP_FOR:          return "FOR";          break;
     case OP_CONT:         return "CONT";         break;
     case OP_BREAK:        return "BREAK";        break;
-    case OP_EXPRS:        return "EXPRS";        break;
-    case OP_ARGS:         return "ARGS";         break;
+    case OP_CLASS:        return "OP_CLASS";         break;
+    case OP_CLASSMEMBERS: return "OP_CLASSMEMBERS";  break;
+    case OP_CLASSFIELD:   return "OP_CLASSFIELD";    break;
+    case OP_EXPRS:        return "EXPRS";            break;
+    case OP_ARGS:         return "ARGS";             break;
+    case OP_TYPE:         return "OP_TYPE";          break;
+    case OP_ARRAYTYPE:    return "OP_ARRAYTYPE";     break;
+    case OP_DICTTYPE:     return "OP_DICTTYPE";      break;
+    case OP_ATOMICTYPE:   return "OP_ATOMICTYPE";    break;
     case OP_NEG:          return "NEG";          break;
     case OP_PLUS:         return "PLUS";         break;
     case OP_MINUS:        return "MINUS";        break;

@@ -101,6 +101,7 @@ lcmnt   #[^\n]*
 "for"    return token::TK_FOR;
 "cont"   return token::TK_CONT;
 "break"  return token::TK_BREAK;
+"class"  return token::TK_CLASS;
 
 ":="     return token::TK_REASSIGN;
 "++"     return token::TK_INC;

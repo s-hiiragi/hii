@@ -5,6 +5,7 @@
 #include <iostream> // for DEBUG
 #include <utility>
 #include "cnode.h"
+#include "cclass.h"
 #include "cvalue.h"
 
 /*
@@ -51,6 +52,23 @@ class cscope
         funs_[name] = fun_node;
     }
 
+    void add_type(std::string const &name, cnode const *type_node)
+    {
+        //types_[name] = type_node;  // どんなデータを入れる?
+        /*
+         * 型の用途
+         * - インスタンスの生成
+         * 
+         * 名前、クラス先頭からの位置、型、その他(値、ノードポインタ)
+         * class classinfo {
+         *   std::unordered_map<
+         *     std::string, 
+         *     std::pair<int, ...>
+         *   > members_;
+         * };
+         */
+    }
+
     bool has_var(std::string const &name) const
     {
         return vars_.find(name) != vars_.end();
@@ -66,6 +84,7 @@ class cscope
         return funs_.find(name) != funs_.end();
     }
 
+    // XXX writableでない変数を返せてしまうのでは？
     cvalue & get_var(std::string const &name)
     {
         return vars_.at(name).first;
@@ -115,5 +134,6 @@ class cscope
     // 関数: funノード(仮) ... 名前解決した情報を登録する必要がある?
     std::map<std::string, std::pair<cvalue, bool>> vars_;
     std::map<std::string, cnode const *> funs_;
+    std::map<std::string, cclass> classes_;
 };
 
