@@ -216,9 +216,9 @@ bool hii_driver::check_syntax(cnode &node)
 bool hii_driver::resolve_names(cnode &node)
 {
     // スコープを作成
+    // XXX この処理の中ではscopes_を使っていないため、
+    // scopes_を表示するthis->print_scopes()を使わないこと
     vector<cscope> scopes = scopes_;
-
-    // XXX この処理の中ではthis->print_scopes()を使わないこと
 
     auto on_enter = [&](cnode::cctrl &ctrl, cnode &n) -> bool {
         switch (n.op())
@@ -306,6 +306,8 @@ bool hii_driver::resolve_names(cnode &node)
             break;
         case OP_ARGS:
             // 仮引数は変数名の参照ではなく宣言なのでチェック対象外
+            ctrl.skip_children();
+            break;
         case OP_DICT:
         case OP_DICTITEM:
         case OP_DICT_INDEX:
