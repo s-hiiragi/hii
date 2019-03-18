@@ -1,5 +1,6 @@
 #include <stdexcept>
 #include <sstream>
+#include "cleaf.h"
 #include "cvalue.h"
 #include "clog.h"
 
@@ -35,6 +36,9 @@ bool cvalue::to_bool() const
         break;
     case DICT:
         return (value_.d->size() != 0);
+        break;
+    case FUNC:
+        return (value_.f != nullptr);
         break;
     }
     return false;
@@ -83,6 +87,14 @@ std::string cvalue::to_string() const
             return ss.str();
         }
         break;
+    case FUNC:
+        {
+            auto id = static_cast<cleaf const *>(value_.f->left());
+            std::stringstream ss;
+            ss << id->sval() << "()";
+            return ss.str();
+        }
+        break;
     default:
         throw std::logic_error("unknown type");
     }
@@ -127,6 +139,9 @@ bool cvalue::operator == (cvalue const &obj) const
             }
         }
         return true;
+    case FUNC:
+        return value_.f == obj.f();
+        break;
     default:
         throw std::logic_error("unknown type");
     }

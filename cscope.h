@@ -4,6 +4,7 @@
 #include <map>
 #include <iostream> // for DEBUG
 #include <utility>
+#include <stdexcept>
 #include "cnode.h"
 #include "cclass.h"
 #include "cvalue.h"
@@ -47,11 +48,6 @@ class cscope
         vars_[name] = std::make_pair(value, writable);
     }
 
-    void add_fun(std::string const &name, cnode const *fun_node)
-    {
-        funs_[name] = fun_node;
-    }
-
     void add_type(std::string const &name, cnode const *type_node)
     {
         //types_[name] = type_node;  // どんなデータを入れる?
@@ -67,6 +63,7 @@ class cscope
          *   > members_;
          * };
          */
+        throw std::logic_error("not implemented");
     }
 
     bool has_var(std::string const &name) const
@@ -79,11 +76,6 @@ class cscope
         return vars_.find(name) != vars_.end() && vars_.at(name).second == true;
     }
 
-    bool has_fun(std::string const &name) const
-    {
-        return funs_.find(name) != funs_.end();
-    }
-
     // XXX writableでない変数を返せてしまうのでは？
     cvalue & get_var(std::string const &name)
     {
@@ -93,11 +85,6 @@ class cscope
     cvalue const & get_var(std::string const &name) const
     {
         return vars_.at(name).first;
-    }
-
-    cnode const * get_fun(std::string const &name) const
-    {
-        return funs_.at(name);
     }
 
     // for debug
@@ -116,14 +103,6 @@ class cscope
         }
         cout << endl;
 
-        cout << "  funs: ";
-        if (funs_.size() >= 1) {
-            for (auto &&e : funs_) {
-                cout << e.first << " ";
-            }
-        }
-        cout << endl;
-
         cout << "  --" << endl;
     }
 
@@ -133,7 +112,6 @@ class cscope
     //   ids_とvars_にmapを分ける方法も考えられる
     // 関数: funノード(仮) ... 名前解決した情報を登録する必要がある?
     std::map<std::string, std::pair<cvalue, bool>> vars_;
-    std::map<std::string, cnode const *> funs_;
     std::map<std::string, cclass> classes_;
 };
 

@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
+#include "cnode.h"
 
 class cvalue
 {
@@ -14,7 +15,8 @@ class cvalue
         INTEGER,
         STRING,
         ARRAY,
-        DICT
+        DICT,
+        FUNC
         // BOOLEAN 欲しい
         // INTEGER -> NUMBERにしたい(実数も扱いたい)
     };
@@ -38,6 +40,9 @@ class cvalue
 
     cvalue(std::map<std::string, cvalue> const &d)
         : type_(DICT) { value_.d = new std::map<std::string, cvalue>(d); }
+
+    cvalue(cnode const *f)
+        : type_(FUNC) { value_.f = f; }
 
     cvalue(cvalue const &obj)
         : type_(VOID)
@@ -70,6 +75,10 @@ class cvalue
             value_.d = obj.value_.d;
             obj.value_.d = nullptr;
             break;
+        case FUNC:
+            type_ = FUNC;
+            value_.f = obj.value_.f;
+            obj.value_.f = nullptr;
         default:
             throw std::logic_error("invalid type");
         }
@@ -97,6 +106,7 @@ class cvalue
     bool is_str() const { return type_ == STRING; }
     bool is_ary() const { return type_ == ARRAY; }
     bool is_dict() const { return type_ == DICT; }
+    bool is_func() const { return type_ == FUNC; }
 
     std::string type_name() const
     {
@@ -111,6 +121,8 @@ class cvalue
             return "ary";
         case DICT:
             return "dict";
+        case FUNC:
+            return "func";
         default:
             throw std::logic_error("invalid type");
         }
@@ -148,6 +160,8 @@ class cvalue
         return value_.d->at(key);
     }
 
+    cnode const * f() const { return value_.f; }
+
     bool to_bool() const;
     std::string to_string() const;
 
@@ -178,6 +192,9 @@ class cvalue
             delete value_.d;
             value_.d = nullptr;
             break;
+        case FUNC:
+            value_.f = nullptr;
+            break;
         }
         
         type_ = obj.type();
@@ -197,6 +214,9 @@ class cvalue
         case DICT:
             value_.d = new std::map<std::string, cvalue>(obj.d());
             break;
+        case FUNC:
+            value_.f = obj.f();
+            break;
         }
     }
 
@@ -206,6 +226,7 @@ class cvalue
         std::string *s;
         std::vector<cvalue> *a;
         std::map<std::string, cvalue> *d;
+        cnode const *f;
     } value_;
 };
 

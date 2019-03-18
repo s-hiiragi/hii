@@ -286,14 +286,14 @@ bool hii_driver::resolve_names(cnode &node)
                 // 関数の二重定義をチェック
                 auto const &name = static_cast<cleaf &>(*n.left()).sval();
                 clog::d("on_enter: %s %s", n.name(), name.c_str());
-                if (scopes.back().has_fun(name)) {
-                    clog::e("関数%sはすでに定義されています", name.c_str());
+                if (scopes.back().has_var(name)) {
+                    clog::e("識別子%sはすでに定義されています", name.c_str());
                     //return false;
                     return true;
                 }
 
                 // 関数を定義
-                scopes.back().add_fun(name, nullptr);  // value is dummy
+                scopes.back().add_var(name, cvalue(nullptr), false);  // value is dummy
 
                 // 引数を定義
                 auto const &args = static_cast<clist &>(*n.right()->left());
@@ -345,8 +345,9 @@ bool hii_driver::resolve_names(cnode &node)
                 // クラスの二重定義をチェック
                 auto const &name = static_cast<cleaf const &>(*n.left()).sval();
                 clog::d("on_enter: %s %s", n.name(), name.c_str());
-                if (scopes.back().has_fun(name)) {
-                    clog::e("クラス%sはすでに定義されています", name.c_str());
+                // XXX has_typeにすべき?
+                if (scopes.back().has_var(name)) {
+                    clog::e("識別子%sはすでに定義されています", name.c_str());
                     //return false;
                     return true;
                 }
@@ -390,7 +391,7 @@ bool hii_driver::resolve_names(cnode &node)
 
                 auto found_it = std::find_if(scopes.rbegin(), scopes.rend(),
                         [&](auto const &scope) {
-                            return scope.has_var(name) || scope.has_fun(name);
+                            return scope.has_var(name);
                         });
                 if (found_it == scopes.rend()) {
                     clog::e("識別子%sは定義されていません", name.c_str());
@@ -471,7 +472,7 @@ bool hii_driver::def_fun(cnode const *node)
     clog::d("declfun name=%s", name.c_str());
 
     // 二重定義は不可
-    if (scopes_.back().has_fun(name))
+    if (scopes_.back().has_var(name))
         return false;
 
     // 上位のスコープに定義されている場合は警告を出す
@@ -479,7 +480,7 @@ bool hii_driver::def_fun(cnode const *node)
     auto it = scopes_.rbegin();
     it++; // skip current scope
     for (; it != scopes_.rend(); it++) {
-        if (it->has_fun(name)) {
+        if (it->has_var(name)) {
             defined = true;
             break;
         }
@@ -490,7 +491,7 @@ bool hii_driver::def_fun(cnode const *node)
 
     // TODO 名前解決を行う
 
-    scopes_.back().add_fun(name, node);
+    scopes_.back().add_var(name, cvalue(node), false);
 
     return true;
 }
@@ -1132,14 +1133,20 @@ cvalue hii_driver::eval_call(cnode const *node)
     else {
         // スコープを上へ辿っていって関数を探す
         auto b = find_if(scopes_.rbegin(), scopes_.rend(), 
-            [&](cscope &s){ return s.has_fun(name); });
+            [&](cscope &s){ return s.has_var(name); });
         
         if (b == scopes_.rend()) {
             clog::e("関数%sは未定義です", name.c_str());
             return res;
         }
 
-        cnode const *fun = b->get_fun(name);
+        cvalue f = b->get_var(name);
+        if (!f.is_func()) {
+            clog::e("%sは関数ではありません (type=%s)", name.c_str(),
+                    f.type_name().c_str());
+            return cvalue();
+        }
+        cnode const *fun = f.f();
         auto const *params = static_cast<clist const *>(fun->right()->left());
         auto const *attrs = static_cast<clist const *>(fun->right()->right()->left());
         auto const *stats = static_cast<clist const *>(fun->right()->right()->right());
@@ -1995,7 +2002,7 @@ cvalue hii_driver::eval_id(cnode const *node)
 
     // 関数を探す
     auto b2 = find_if(scopes_.rbegin(), scopes_.rend(), 
-        [&](cscope &s){ return s.has_fun(name); });
+        [&](cscope &s){ return s.has_var(name); });
    
     if (b2 != scopes_.rend()) {
         // call_statのノード構造に変換する
